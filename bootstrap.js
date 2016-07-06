@@ -119,11 +119,47 @@ edichain.bootstrap.prototype.createNewKeypair=function() {
 			console.log("Private Key saved (filesystem)");
 		}); 
 };
-edichain.sendData = function(to,data) {
 
+edichain.encryptAES =  function(message, password) {
+        var salt = forge.random.getBytesSync(128);
+        var key = forge.pkcs5.pbkdf2(password, salt, 4, 16);
+        var iv = forge.random.getBytesSync(16);
+        var cipher = forge.cipher.createCipher('AES-CBC', key);
+        cipher.start({iv: iv});
+        cipher.update(forge.util.createBuffer(message));
+        cipher.finish();
+        var cipherText = forge.util.encode64(cipher.output.getBytes());
+        return {cipher_text: cipherText, salt: forge.util.encode64(salt), iv: forge.util.encode64(iv),key:forge.util.encode64(key)};
+    };
+	
+edichain.decryptAES = function(cipherText, password, salt, iv) {
+		cipherText=forge.util.decode64(cipherText);
+		salt=forge.util.decode64(salt);
+		iv=forge.util.decode64(iv);
+        var key = forge.pkcs5.pbkdf2(password, salt, 4, 16);
+		
+        var decipher = forge.cipher.createDecipher('AES-CBC', key);	
+        decipher.start({iv: iv});			
+        decipher.update(forge.util.createBuffer(cipherText));		
+        decipher.finish();		
+        return decipher.output.data;
+};
+	
+edichain.sendData = function(to,data) {
+ 
 	var sendDataWithPubKey=function(to_key) {
 		var pubkey=forge.pki.publicKeyFromPem(to_key);
-		var enc_data = pubkey.encrypt(data);
+		var aes = edichain.encryptAES(data,to);		
+		var _aeskey=forge.util.encode64(pubkey.encrypt(aes.key));
+		var _aessalt=forge.util.encode64(pubkey.encrypt(aes.salt));
+		var _aesiv=forge.util.encode64(pubkey.encrypt(aes.iv));
+		var enc_data = JSON.stringify({
+				aeskey:_aeskey,
+				aesiv:_aesiv,
+				aessalt:_aessalt,
+				data:aes.cipher_text
+		});
+		console.log(enc_data);
 		edichain.ipfs.files.add(new Buffer(enc_data),function(err,res) {
 			if(err) throw err;
 			edichain.sendMsg(to,res[0].path);		
@@ -156,8 +192,16 @@ edichain.decryptMessage = function(message) {
 						.on('data', (data) => {
 						  buf += data
 						})
-						.on('end', () => {							
-						  message.data=edichain.config.pom.decrypt(buf);				  
+						.on('end', () => {	
+							var m = JSON.parse(buf);
+							try {
+							m.aessalt=edichain.config.pom.decrypt(forge.util.decode64(m.aessalt));
+							m.aesiv=edichain.config.pom.decrypt(forge.util.decode64(m.aesiv));
+							m.key=edichain.config.pom.decrypt(forge.util.decode64(m.aesiv));
+							message.data = edichain.decryptAES(m.data, message.to, m.key,m.aesiv);
+							} catch(e) {}
+							console.log(message.data);
+							
 						});
 		});
 };
