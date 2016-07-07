@@ -1,0 +1,106 @@
+0 info it worked if it ends with ok
+1 verbose cli [ 'C:\\Program Files\\nodejs\\node.exe',
+1 verbose cli   'C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js',
+1 verbose cli   'publish' ]
+2 info using npm@3.3.12
+3 info using node@v5.3.0
+4 verbose publish [ '.' ]
+5 silly cache add args [ '.', null ]
+6 verbose cache add spec .
+7 silly cache add parsed spec Result {
+7 silly cache add   raw: '.',
+7 silly cache add   scope: null,
+7 silly cache add   name: null,
+7 silly cache add   rawSpec: '.',
+7 silly cache add   spec: 'E:\\cloud\\Dropbox\\Development\\ongit\\edichain',
+7 silly cache add   type: 'directory' }
+8 verbose addLocalDirectory C:\Users\tz2\AppData\Roaming\npm-cache\edichain\0.0.2\package.tgz not in flight; packing
+9 info lifecycle edichain@0.0.2~prepublish: edichain@0.0.2
+10 silly lifecycle edichain@0.0.2~prepublish: no script for prepublish, continuing
+11 verbose tar pack [ 'C:\\Users\\tz2\\AppData\\Roaming\\npm-cache\\edichain\\0.0.2\\package.tgz',
+11 verbose tar pack   'E:\\cloud\\Dropbox\\Development\\ongit\\edichain' ]
+12 verbose tarball C:\Users\tz2\AppData\Roaming\npm-cache\edichain\0.0.2\package.tgz
+13 verbose folder E:\cloud\Dropbox\Development\ongit\edichain
+14 verbose addLocalTarball adding from inside cache C:\Users\tz2\AppData\Roaming\npm-cache\edichain\0.0.2\package.tgz
+15 silly cache afterAdd edichain@0.0.2
+16 verbose afterAdd C:\Users\tz2\AppData\Roaming\npm-cache\edichain\0.0.2\package\package.json not in flight; writing
+17 verbose afterAdd C:\Users\tz2\AppData\Roaming\npm-cache\edichain\0.0.2\package\package.json written
+18 silly publish { name: 'edichain',
+18 silly publish   version: '0.0.2',
+18 silly publish   description: 'Provides a basic integration for ipfs (storage/distribution) and ethereum blockchain (validation/authorization) based EDIfact message exchange.  ',
+18 silly publish   main: 'edichain.js',
+18 silly publish   scripts: { test: 'echo "Error: no test specified" && exit 1' },
+18 silly publish   author:
+18 silly publish    { name: 'Thorsten Zoerner',
+18 silly publish      email: 'me@thorsten-zoerner.com',
+18 silly publish      url: 'https://blog.stromhaltig.de' },
+18 silly publish   license: 'ISC',
+18 silly publish   dependencies:
+18 silly publish    { 'ipfs-api': '^6.0.3',
+18 silly publish      'ipfs-log': '^1.4.7',
+18 silly publish      'node-forge': '^0.6.40',
+18 silly publish      web3: '^0.16.0' },
+18 silly publish   devDependencies: {},
+18 silly publish   repository:
+18 silly publish    { type: 'git',
+18 silly publish      url: 'git+https://github.com/zoernert/edichain.git' },
+18 silly publish   keywords: [ 'edifact', 'ethereum', 'blockchain', 'ipfs', 'pki' ],
+18 silly publish   bugs: { url: 'https://github.com/zoernert/edichain/issues' },
+18 silly publish   homepage: 'https://github.com/zoernert/edichain#readme',
+18 silly publish   readme: 'EDIchain\r\n=========\r\n\r\n\r\n\r\n## Installation\r\n```\r\n  npm install edichain --save\r\n```\r\n## Requirement\r\n\r\nRequires ipfs daemon to be started \r\n\r\n```\r\nipfs daemon\r\n```\r\n \r\nRequires geth to be started and synced blockchain.\r\n\r\n```\r\ngeth --rpc --unlock "0x12345678..." --rpcapi "eth,net,web3,personal" --rpcaddr "localhost"  --rpcport "8545" console  \r\n```\r\n \r\n## Usage\r\n\r\nBasic\r\n```javascript\r\n\tvar cb = function() {\r\n\t\t\r\n\t\tif(!edichain.config.registered) {\r\n\t\t\tedichain.register();\t\t\t\r\n\t\t} else {\r\n\t\t\t// YOUR Code to interact \t\t\t\r\n\t\t}\r\n\t}\r\n\r\n\tvar echain = new edichain.bootstrap({bootstrap_callback:cb});\r\n\t\r\n``` \r\n\r\n## Contributing\r\n\r\n\r\n## Release History\r\n\r\n* 0.0.1 Initial release',
+18 silly publish   readmeFilename: 'README.md',
+18 silly publish   gitHead: '8ca9cd2432446942e0551bff7659f87db161bacd',
+18 silly publish   _id: 'edichain@0.0.2',
+18 silly publish   _shasum: 'b78189d3b74c66dc4aff1a8861c696fea94c2810',
+18 silly publish   _from: '.' }
+19 verbose getPublishConfig undefined
+20 silly mapToRegistry name edichain
+21 silly mapToRegistry using default registry
+22 silly mapToRegistry registry https://registry.npmjs.org/
+23 silly mapToRegistry uri https://registry.npmjs.org/edichain
+24 verbose publish registryBase https://registry.npmjs.org/
+25 silly publish uploading C:\Users\tz2\AppData\Roaming\npm-cache\edichain\0.0.2\package.tgz
+26 verbose request uri https://registry.npmjs.org/edichain
+27 verbose request sending authorization for write operation
+28 info attempt registry request try #1 at 17:43:05
+29 verbose request using bearer token for auth
+30 verbose request id 381549c9d4f0a91a
+31 http request PUT https://registry.npmjs.org/edichain
+32 http 403 https://registry.npmjs.org/edichain
+33 verbose headers { 'content-type': 'application/json',
+33 verbose headers   'cache-control': 'max-age=300',
+33 verbose headers   'content-length': '95',
+33 verbose headers   'accept-ranges': 'bytes',
+33 verbose headers   date: 'Thu, 07 Jul 2016 15:43:07 GMT',
+33 verbose headers   via: '1.1 varnish',
+33 verbose headers   connection: 'keep-alive',
+33 verbose headers   'x-served-by': 'cache-fra1248-FRA',
+33 verbose headers   'x-cache': 'MISS',
+33 verbose headers   'x-cache-hits': '0',
+33 verbose headers   'x-timer': 'S1467906186.232990,VS0,VE1055',
+33 verbose headers   vary: 'Accept-Encoding' }
+34 verbose request invalidating C:\Users\tz2\AppData\Roaming\npm-cache\registry.npmjs.org\edichain on PUT
+35 error publish Failed PUT 403
+36 verbose stack Error: "You cannot publish over the previously published version 0.0.2." : edichain
+36 verbose stack     at makeError (C:\Program Files\nodejs\node_modules\npm\node_modules\npm-registry-client\lib\request.js:264:12)
+36 verbose stack     at CachingRegistryClient.<anonymous> (C:\Program Files\nodejs\node_modules\npm\node_modules\npm-registry-client\lib\request.js:252:14)
+36 verbose stack     at Request._callback (C:\Program Files\nodejs\node_modules\npm\node_modules\npm-registry-client\lib\request.js:172:14)
+36 verbose stack     at Request.self.callback (C:\Program Files\nodejs\node_modules\npm\node_modules\request\request.js:198:22)
+36 verbose stack     at emitTwo (events.js:87:13)
+36 verbose stack     at Request.emit (events.js:172:7)
+36 verbose stack     at Request.<anonymous> (C:\Program Files\nodejs\node_modules\npm\node_modules\request\request.js:1082:10)
+36 verbose stack     at emitOne (events.js:82:20)
+36 verbose stack     at Request.emit (events.js:169:7)
+36 verbose stack     at IncomingMessage.<anonymous> (C:\Program Files\nodejs\node_modules\npm\node_modules\request\request.js:1009:12)
+37 verbose statusCode 403
+38 verbose pkgid edichain
+39 verbose cwd E:\cloud\Dropbox\Development\ongit\edichain
+40 error Windows_NT 6.1.7601
+41 error argv "C:\\Program Files\\nodejs\\node.exe" "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js" "publish"
+42 error node v5.3.0
+43 error npm  v3.3.12
+44 error code E403
+45 error "You cannot publish over the previously published version 0.0.2." : edichain
+46 error If you need help, you may report this error at:
+46 error     <https://github.com/npm/npm/issues>
+47 verbose exit [ 1, true ]

@@ -4,8 +4,8 @@ var rsa = forge.pki.rsa;
 var Web3 = require('web3');
 var web3 = new Web3();
 var ipfsAPI = require('ipfs-api');
-const Log  = require('ipfs-log');
 var crypto = require('crypto');
+var winston = require('winston');
 
 edichain = function() {};
 
@@ -13,8 +13,14 @@ edichain.bootstrap=function(config) {
 		var c = { version:'0.1' };
 		if(!config.ipfsAPI)  c.ipfsAPI='/ip4/127.0.0.1/tcp/5001'; else c.ipfsAPI=config.ipfsAPI;		
 		edichain.ipfs = ipfsAPI(c.ipfsAPI);
-		edichain.ipfs.id(function(err,res) { if(err) throw "Check if ipfs daemon is running" ; c.ipfsID=res.ID; });
-		edichain.txlog = new Log(edichain.ipfs, 'A', 'txlog', { maxHistory: 100000 });
+		edichain.ipfs.id(function(err,res) { if(err) throw "Check if ipfs daemon is running" ; c.ipfsID=res.ID; });	
+		edichain.txlog = new (winston.Logger)({
+					transports: [
+					  new (winston.transports.Console)(),
+					  new (winston.transports.File)({ filename: 'tx.log' })
+					]
+				  });
+
 		if(config.bootstrap_callback) c.bootstrap_callback=config.bootstrap_callback;
 		if(config.rpcProvider) c.rpcProvider=config.rpcProvider; else c.rpcProvider='http://localhost:8545';		
 		if(config.path) c.path=config.path; else c.path="./";		
@@ -164,7 +170,7 @@ edichain.sendMsg = function(to,hash) {
 		edichain.config.registrarContract.sendMsg(to,hash,{from:edichain.config.fromAddress,gas: 1000000,value:edichain.config.registrarContract.fee_msg()},function(error, result){
 			if(!error) {
 				console.log("TX Hash sendMsg:"+result)
-				edichain.txlog.add({'sendMsg':result,'to':to,'hash':hash});
+				edichain.txlog.info('sendMsg',{'result':result,'to':to,'hash':hash});
 				}
 			else
 				console.error(error);
@@ -280,7 +286,7 @@ edichain.sendAckMessage = function(addr,hash) {
 			if(!error)
 				{ 
 					console.log("TX Hash ACK:"+result);
-					edichain.txlog.add({'ack':result});					
+					edichain.txlog.info('ackMsg',{'result':result,'addr':addr,'hash':hash});
 				}
 			else
 				console.error(error);
@@ -313,8 +319,8 @@ edichain.updateInbox = function() {
 				m.from=msg.from();
 				m.to=msg.to();
 				m.hash_msg=msg.hash_msg();
-				m.hash_ack=msg.hash_ack();				
 				m.timestamp_msg=msg.timestamp_msg();
+				m.hash_ack=msg.hash_ack();				
 				m.timestamp_ack=msg.timestamp_ack();
 				m.decrypt();
 				edichain.messages[edichain.messages.length]=m;
@@ -361,7 +367,7 @@ edichain.register = function() {
 			if(!error)
 				{ 
 					console.log("TX Hash Registration:"+result);
-					edichain.txlog.add({'register':result});
+					edichain.txlog.info('register',{'result':result,'ipsid':edichain.config.ipfsID});
 					edichain.sendMsg(edichain.config.registrarContract.registrar(),""+edichain.config.ipfsID+"");
 				}
 			else
