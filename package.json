@@ -1,6 +1,6 @@
 {
   "name": "edichain",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Provides a basic integration for ipfs (storage/distribution) and ethereum blockchain (validation/authorization) based EDIfact message exchange.  ",
   "main": "runner.js",
   "scripts": {
@@ -12,7 +12,7 @@
     "ipfs-api": "^6.0.3",
     "ipfs-log": "^1.4.7",
     "node-forge": "^0.6.40",
-    "web3": "^0.16.0"
+    "web3": "^0.16.0"	
   },
   "devDependencies": {},
   "repository": {
