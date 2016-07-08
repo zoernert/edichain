@@ -1,6 +1,6 @@
 {
   "name": "edichain",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "description": "Provides a basic integration for ipfs (storage/distribution) and ethereum blockchain (validation/authorization) based EDIfact message exchange.  ",
   "main": "edichain.js",
   "scripts": {
@@ -9,10 +9,10 @@
   "author": "Thorsten Zoerner <me@thorsten-zoerner.com> (https://blog.stromhaltig.de)",
   "license": "ISC",
   "dependencies": {
-    "ipfs-api": "^6.0.3",
-    "ipfs-log": "^1.4.7",
+    "ipfs-api": "^6.0.3",    
     "node-forge": "^0.6.40",
-    "web3": "^0.16.0"	
+    "web3": "^0.16.0",
+	"winston": "^2.2.0"	
   },
   "devDependencies": {},
   "repository": {

@@ -10,7 +10,7 @@ var winston = require('winston');
 edichain = function() {};
 
 edichain.bootstrap=function(config) {
-		var c = { version:'0.1' };
+		var c = { version:'0.0.5' };
 		if(!config.ipfsAPI)  c.ipfsAPI='/ip4/127.0.0.1/tcp/5001'; else c.ipfsAPI=config.ipfsAPI;		
 		edichain.ipfs = ipfsAPI(c.ipfsAPI);
 		edichain.ipfs.id(function(err,res) { if(err) throw "Check if ipfs daemon is running" ; c.ipfsID=res.ID; });	
@@ -31,11 +31,24 @@ edichain.bootstrap=function(config) {
 			this.createNewKeypair(); 
 		}
 		web3.setProvider(new web3.providers.HttpProvider(c.rpcProvider));
-		c.registrarAbi=JSON.parse(fs.readFileSync('registrar.abi',{encoding:"utf-8"}));
-		c.messageAbi=JSON.parse(fs.readFileSync('message.abi',{encoding:"utf-8"}));
-		if(config.fromAddress) c.fromAddress=config.fromAddress; else c.fromAddress=web3.eth.accounts[0];
+		if(fs.existsSync('registrar.abi')&&fs.existsSync('message.abi')) {
+			c.registrarAbi=JSON.parse(fs.readFileSync('registrar.abi',{encoding:"utf-8"}));
+			c.messageAbi=JSON.parse(fs.readFileSync('message.abi',{encoding:"utf-8"}));
+		} else {
+			edichain.retrieveABI();
+		}
+		if(config.fromAddress) c.fromAddress=config.fromAddress; else { 
+				if(web3.eth.accounts.length==0) {
+						web3.personal.newAccount(c.ipfsID);
+				} 
+				c.fromAddress=web3.eth.accounts[0]; 		
+		}
 		if(config.pubRegistrarAddress) c.pubRegistrarAddress=config.pubRegistrarAddress; else c.pubRegistrarAddress="0x4CC3C679E69CD21710E908aa3777DEbe6Cc776Ed";
-		if(config.pwd) { web3.personal.unlockAccount(c.fromAddress, config.pwd, 300); c.pwd=config.pwd;}
+		if(config.pwd) { web3.personal.unlockAccount(c.fromAddress, config.pwd, 86400); c.pwd=config.pwd;} else {
+			try {
+			web3.personal.unlockAccount(c.fromAddress,c.ipfsID,86400);
+			} catch(e) {}
+		}
 		this.config=c;
 		this.config.fromAddress=this.config.fromAddress.toLowerCase();
 		c.inboxBlock=0;
@@ -44,7 +57,7 @@ edichain.bootstrap=function(config) {
 		
 		c.bootstrap_fnct=this.init2;
 		c.bootstrap1=setInterval(function() {
-			if(c.ipfsID&&c.pem&&c.fromAddress) {
+			if(c.ipfsID&&c.pem&&c.fromAddress&&edichain.config.messageAbi&&edichain.config.registrarAbi) {
 				clearInterval(c.bootstrap1);
 				c.bootstrap1=null;
 				c.bootstrap_fnct();
@@ -323,11 +336,46 @@ edichain.updateInbox = function() {
 				m.hash_ack=msg.hash_ack();				
 				m.timestamp_ack=msg.timestamp_ack();
 				m.decrypt();
-				edichain.messages[edichain.messages.length]=m;
+				edichain.messages[i]=m;
 			} catch(e)  {console.log(e);}			
 			}
 		}		
 };
+
+edichain.retrieveABI = function() {
+
+	edichain.ipfs.cat("QmTawf3PqWxejNj8bECDAeja8FdCK25Kj3VfwKMKfNNvfE",function(err,res) {	
+		if(err) { console.log(err); throw "Unable to retrieve message.abi via IPFS (maybe try to copy file to root folder)"; }
+		var buf = ''
+					  res
+						.on('error', (err) => {
+							//
+						})
+						.on('data', (data) => {
+						  buf += data
+						})
+						.on('end', () => {
+							fs.writeFileSync("message.abi", buf);
+							edichain.config.messageAbi=JSON.parse(buf);
+						});
+	});
+	
+	edichain.ipfs.cat("QmfYDth3f5MqypZ45JUKjVN48g4xi5DHttfTh6wCfstwXJ",function(err,res) {		
+		if(err) { console.log(err); throw "Unable to retrieve registrar.abi via IPFS (maybe try to copy file to root folder)"; }
+		var buf = ''
+					  res
+						.on('error', (err) => {
+							//
+						})
+						.on('data', (data) => {
+						  buf += data
+						})
+						.on('end', () => {
+							fs.writeFileSync("registrar.abi", buf);
+							edichain.config.registrarAbi=JSON.parse(buf);
+						});
+	});
+}
 
 edichain.getPubKey = function(address,callback) {
 		var reg=edichain.config.registrarContract.regadr(address);
