@@ -65,10 +65,11 @@ Basic
 ``` 
 	
 What happens in the background:
-1. Check if recipient "0x97..." is registered
-2. Fetch public key of recipient via ipfs using hash provided by registrar contract in blockchain
-3. Encrypt Data and store it as ipfs object
-4. Send message with hash to stored object to recipient (using registrar)
+
+1.  Check if recipient "0x97..." is registered
+2.  Fetch public key of recipient via ipfs using hash provided by registrar contract in blockchain
+3.  Encrypt Data and store it as ipfs object
+4.  Send message with hash to stored object to recipient (using registrar)
 
 ### Checking and updating inbox
 
@@ -94,11 +95,12 @@ What happens in the background:
 ``` 
 
 How messages get processed:
-1. Check with registrar for new messages
-2. Retrieve address of message contract
-3. Retrieve hash with data using IPFS
-4. Decrypt message and validate sender
-5. Update Messages array
+
+1.  Check with registrar for new messages
+2.  Retrieve address of message contract
+3.  Retrieve hash with data using IPFS
+4.  Decrypt message and validate sender
+5.  Update Messages array
 
 ### Transaction Log
 
