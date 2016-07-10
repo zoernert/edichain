@@ -12,6 +12,7 @@ edichain = function() {};
 edichain.bootstrap=function(config) {
 		var c = { version:'0.0.5' };
 		if(!config.ipfsAPI)  c.ipfsAPI='/ip4/127.0.0.1/tcp/5001'; else c.ipfsAPI=config.ipfsAPI;		
+		if(!c.lastMsgCnt) c.lastMsgCnt=0;		
 		edichain.ipfs = ipfsAPI(c.ipfsAPI);
 		edichain.ipfs.id(function(err,res) { if(err) throw "Check if ipfs daemon is running" ; c.ipfsID=res.ID; });	
 		edichain.txlog = new (winston.Logger)({
@@ -147,7 +148,7 @@ edichain.bootstrap.prototype.createNewKeypair=function() {
 
 
 	
-edichain.sendData = function(to,data) {
+edichain.sendData = function(to,data,cb) {
  
 	var sendDataWithPubKey=function(to_key) {
 		const hmac = crypto.createHmac('sha256', to.toLowerCase());
@@ -170,20 +171,20 @@ edichain.sendData = function(to,data) {
 		console.log(enc_data);
 		edichain.ipfs.files.add(new Buffer(enc_data),function(err,res) {
 			if(err) throw err;			
-			edichain.sendMsg(to.toLowerCase(),res[0].path);		
+			edichain.sendMsg(to.toLowerCase(),res[0].path,cb);		
 		});
-	};
-	
+	};	
 	edichain.getPubKey(to,sendDataWithPubKey);
 		
 
 };
 
-edichain.sendMsg = function(to,hash) {
+edichain.sendMsg = function(to,hash,cb) {
 		edichain.config.registrarContract.sendMsg(to,hash,{from:edichain.config.fromAddress,gas: 1000000,value:edichain.config.registrarContract.fee_msg()},function(error, result){
 			if(!error) {
 				console.log("TX Hash sendMsg:"+result)
 				edichain.txlog.info('sendMsg',{'result':result,'to':to,'hash':hash});
+				cb(result,hash);
 				}
 			else
 				console.error(error);
@@ -205,9 +206,9 @@ edichain.decryptMessageHash = function(hash,message,cb) {
 							try {
 							m = JSON.parse(buf);
 							} catch(e) {console.log("JSON Error in incomming msg");}
-							//console.log(m);
+							
 							if((m.data)&&(m.hmac_digest)) {
-								
+							
 								   var enc_hmac_digest = new Buffer(m.hmac_digest,'base64');
 								   var dec_hmac_digest = crypto.privateDecrypt(edichain.config.pom_data,enc_hmac_digest);
 								   
@@ -231,9 +232,14 @@ edichain.decryptMessageHash = function(hash,message,cb) {
 										if(cb) {
 											cb(message);
 										}
-									}
-									
-							}														
+									} else  {console.log("No Message Object");}								
+							} else { 
+								console.log("Message cryption warning!");	
+								m.data="";
+								message.data="";
+								//cb(m);
+								cb(message);
+							}
 						});
 		});		
 }
@@ -255,16 +261,44 @@ edichain.verifySender = function(message,cb) {
 			}		
 			if(cb) cb(message);
 		}
-		edichain.getPubKey(message.from,verifyWithKey);
+		try {
+			edichain.getPubKey(message.from,verifyWithKey);
+		} catch(e) {
+			message.err=e;
+			edichain.storeMessage(message);
+		}
 };
 
-edichain.decryptMessage = function(message) {        
-	// Decorator to verify & retrieve 
-	edichain.decryptMessageHash(message.hash_msg,message,function(m) {edichain.verifySender(m,function(m) {			
-			if(m.hash_ack.length<2) {
-				edichain.ackMessage(m,JSON.stringify(m.hash_msg));
-			}
-	}); });	
+edichain.storeMessage = function(message) { console.log(message); // suggest to implement by user...
+};
+
+edichain.decryptMessage = function(message) {				
+	edichain.storeMessage(message);
+	try {
+			edichain.decryptMessageHash(message.hash_msg,message,function(m) {
+				try {
+							edichain.storeMessage(m);
+							edichain.verifySender(m,function(m) {			
+								try 
+								{
+										if(m.hash_ack.length<2) {
+											edichain.ackMessage(m,JSON.stringify(m.hash_msg));
+										}
+										edichain.storeMessage(m);
+								} catch(e) {
+									m.err=e;
+									edichain.storeMessage(m);			 
+								}										
+							});	
+				} catch(e) {
+					m.err=e;
+					edichain.storeMessage(m);			 
+				}
+			 });
+	 } catch(e) {
+	 message.err=e;
+	 edichain.storeMessage(message);			 
+	 }
 };
 
 
@@ -306,25 +340,15 @@ edichain.sendAckMessage = function(addr,hash) {
 		});	
 };
 
-edichain.message = function() {
-	this.ack = function() {
-		edichain.ackMessage(this);
-	}
-	this.decrypt=function() {	
-		edichain.decryptMessage(this);
-	};
-	
-};
-
-edichain.messages = [];
+edichain.message = function() {};
 
 edichain.updateInbox = function() {
-		if(edichain.config.inboxBlock>=web3.eth.blockNumber) return;
+		// Changed in 0.0.6 to a Step by Step processing				
 		edichain.config.inboxBlock=web3.eth.blockNumber;		
-		var msg_addr="";
-		for(i=0;msg_addr.length!=2;i++) {
-			var msg_addr = edichain.config.registrarContract.msgs(edichain.config.fromAddress,i);	
-			if(msg_addr.length!=2) {
+		var msg_addr="";		
+		
+		var msg_addr = edichain.config.registrarContract.msgs(edichain.config.fromAddress,edichain.config.lastMsgCnt+1);	
+		if(msg_addr.length!=2) {
 			var msg = web3.eth.contract(edichain.config.messageAbi).at(msg_addr);					
 			try {
 				var m=new edichain.message();
@@ -335,11 +359,12 @@ edichain.updateInbox = function() {
 				m.timestamp_msg=msg.timestamp_msg();
 				m.hash_ack=msg.hash_ack();				
 				m.timestamp_ack=msg.timestamp_ack();
-				m.decrypt();
-				edichain.messages[i]=m;
-			} catch(e)  {console.log(e);}			
-			}
+				m.data="";
+				edichain.decryptMessage(m);			
+				edichain.config.lastMsgCnt++;
+			} catch(e)  {console.log(e);}					
 		}		
+		return edichain.config.lastMsgCnt;
 };
 
 edichain.retrieveABI = function() {
@@ -383,11 +408,17 @@ edichain.getPubKey = function(address,callback) {
 		var hash=reg[1];
 		var pubkey = "";
 		edichain.ipfs.name.resolve("/ipns/"+hash+"/pub.key",function(err,res) {	
-		if(err) throw "Unable to resolve pub key at : /ipns/"+hash+"/pub.key"; 
+		if(err) {
+			console.log(err);
+			//throw "Unable to resolve pub key at : /ipns/"+hash+"/pub.key"; 
+			
+			return;
+		}
 		edichain.ipfs.files.rm("/"+address+".key",function(err1,res1) {					
 		edichain.ipfs.files.cp([res.Path,"/"+address+".key"],function(err,res) {
-		    if(err) { console.log(err); throw "Key not found at /ipns/"+hash+"/pub.key"; }			
+		    if(err) { console.log(err,res); throw "Key not found at /ipns/"+hash+"/pub.key"; }			
 			edichain.ipfs.files.read("/"+address+".key",function(err,res) {		
+					if(!res) throw "Error fetching key!";
 					var buf = ''
 					  res
 						.on('error', (err) => {
