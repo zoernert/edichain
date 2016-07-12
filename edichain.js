@@ -6,6 +6,9 @@ var web3 = new Web3();
 var ipfsAPI = require('ipfs-api');
 var crypto = require('crypto');
 var winston = require('winston');
+var https = require('https');
+var constants = require("constants");
+var NodeRSA = require('node-rsa');
 
 edichain = function() {};
 
@@ -97,7 +100,7 @@ edichain.bootstrap.prototype.init2 = function() {
 	console.log("Bootstrap: Phase1 finished");
 	// Check if everything is set on IPFS - if not publish
 	edichain.updateRoot();
-	//edichain.updatePubKeyNS();
+	edichain.updatePubKeyNS();
 	
 	edichain.config.registrarContract=web3.eth.contract(edichain.config.registrarAbi).at(edichain.config.pubRegistrarAddress);	
 	if(edichain.config.registrarContract.regadr(edichain.config.fromAddress)[1]==edichain.config.ipfsID) {	
@@ -151,6 +154,7 @@ edichain.bootstrap.prototype.createNewKeypair=function() {
 edichain.sendData = function(to,data,cb) {
  
 	var sendDataWithPubKey=function(to_key) {
+		try {
 		const hmac = crypto.createHmac('sha256', to.toLowerCase());
 		hmac.update(edichain.config.pubRegistrarAddress.toLowerCase());		
 		var hmac_digest=hmac.digest('base64');
@@ -159,20 +163,26 @@ edichain.sendData = function(to,data,cb) {
 
 		var encrypted = cipher.update(data, 'utf8', 'base64');
 		encrypted += cipher.final('base64');
-
-		var enc_hmac_digest = crypto.publicEncrypt(to_key, new Buffer(hmac_digest));
-		var enc_hmac_from = crypto.privateEncrypt(edichain.config.pom_data, new Buffer(hmac_digest));
+		var pubkey = forge.pki.publicKeyFromPem(to_key);
+		//var enc_hmac_digest= forge.util.encode64(pubkey.encrypt(hmac_digest,'RSA-OAEP'));
+		//var enc_hmac_digest = crypto.publicEncrypt({key:to_key,padding:constants.RSA_PKCS1_PADDING}, new Buffer(hmac_digest));
+		//var enc_hmac_from=edichain.config.pom.encrypt(new Buffer(hmac_digest));
+		var key = new NodeRSA(to_key);			
+		var enc_hmac_digest = key.encrypt(hmac_digest,'base64');
+		
+		var enc_hmac_from = crypto.privateEncrypt({key:edichain.config.pom_data,padding:constants.RSA_PKCS1_PADDING}, new Buffer(hmac_digest));
 		
 		var enc_data = JSON.stringify({
 			hmac_digest:enc_hmac_digest.toString('base64'),
 			hmac_from:enc_hmac_from.toString('base64'),
 			data:encrypted
 			});
-		console.log(enc_data);
+		
 		edichain.ipfs.files.add(new Buffer(enc_data),function(err,res) {
 			if(err) throw err;			
 			edichain.sendMsg(to.toLowerCase(),res[0].path,cb);		
 		});
+		} catch(e) {console.log("Error sendDataWithPubKey",e);}
 	};	
 	edichain.getPubKey(to,sendDataWithPubKey);
 		
@@ -184,15 +194,19 @@ edichain.sendMsg = function(to,hash,cb) {
 			if(!error) {
 				console.log("TX Hash sendMsg:"+result)
 				edichain.txlog.info('sendMsg',{'result':result,'to':to,'hash':hash});
-				cb(result,hash);
+				if(cb) {
+					cb(result,hash);
+				}
 				}
 			else
 				console.error(error);
 		});	
 };
+
 edichain.decryptMessageHash = function(hash,message,cb) {
         var ret=false;
 		edichain.ipfs.cat(hash,function(err,res) {
+					if(err) { console.log("Error in decryptMessageHash",err);}
 					var buf = ''
 					  res
 						.on('error', (err) => {
@@ -202,27 +216,46 @@ edichain.decryptMessageHash = function(hash,message,cb) {
 						  buf += data
 						})
 						.on('end', () => {	
-							var m = {};
+							edichain.storeHash(hash,buf);
+							var m = {};							
 							try {
 							m = JSON.parse(buf);
 							} catch(e) {console.log("JSON Error in incomming msg");}
-							
+								
 							if((m.data)&&(m.hmac_digest)) {
-							
-								   var enc_hmac_digest = new Buffer(m.hmac_digest,'base64');
-								   var dec_hmac_digest = crypto.privateDecrypt(edichain.config.pom_data,enc_hmac_digest);
+								try {	
+								   var enc_hmac_digest = new Buffer(m.hmac_digest,'base64');		
+									// RSA_PKCS1_PADDING
+									//
+									var dec_hmac_digest ="";
+									
+								   try { dec_hmac_digest = crypto.privateDecrypt({key:edichain.config.pom_data,padding: constants.RSA_PKCS1_NO_PADDING},enc_hmac_digest); } catch(e) {}
+								   if(dec_hmac_digest=="") {try { dec_hmac_digest = crypto.privateDecrypt({key:edichain.config.pom_data,padding: constants.RSA_PKCS1_NO_PADDING},enc_hmac_digest); } catch(e) {}}
+								   if(dec_hmac_digest=="") {try { dec_hmac_digest = crypto.privateDecrypt({key:edichain.config.pom_data,padding: constants.RSA_PKCS1_NO_PADDING},enc_hmac_digest); } catch(e) {}}
 								   
+								   if(dec_hmac_digest=="") {try { 
+								   dec_hmac_digest = edichain.config.pom.decrypt(forge.util.decode64(enc_hmac_digest),'RSA-OAEP'); } catch(e) {}}
+								   
+								   if(dec_hmac_digest=="") {try { 
+								   var key = new NodeRSA(edichain.config.pom_data);
+								   
+								   dec_hmac_digest = key.decrypt(enc_hmac_digest,'utf8');
+								   
+								   } catch(e) {console.log(e);}}
+								   
+								   
+								   if( dec_hmac_digest=="") throw "No PADDING FOUND";
 									// Test if HMAC is correct (are we recipient?)
 									const hmac = crypto.createHmac('sha256', edichain.config.fromAddress.toLowerCase());
 									hmac.update(edichain.config.pubRegistrarAddress.toLowerCase());
 									var hmac_digest=hmac.digest('base64');
 		
 									if(hmac_digest!=dec_hmac_digest.toString()) {
-										throw "Message routing error - message hash conflict";
+										console.log("Message routing error - message hash conflict");
 									} 
 		
 									var  decipher = crypto.createDecipher('aes192', dec_hmac_digest.toString());
-									
+									decipher.setAutoPadding(false);
 									var decrypted = decipher.update(new Buffer(m.data,'base64'), 'hex', 'utf8');
 									decrypted += decipher.final('utf8');
 									if(message) {
@@ -232,7 +265,8 @@ edichain.decryptMessageHash = function(hash,message,cb) {
 										if(cb) {
 											cb(message);
 										}
-									} else  {console.log("No Message Object");}								
+									} else  {console.log("No Message Object");}	
+								} catch(e) {console.log("Decryption Warning:",e);}									
 							} else { 
 								console.log("Message cryption warning!");	
 								m.data="";
@@ -248,7 +282,10 @@ edichain.decryptMessageHash = function(hash,message,cb) {
 edichain.verifySender = function(message,cb) {		
 		var verifyWithKey = function(pubKey) {
 			var enc_hmac_digest = new Buffer(message.hmac_from,'base64');
-			var dec_hmac_digest = crypto.publicDecrypt(pubKey,enc_hmac_digest).toString();
+			var dec_hmac_digest = "";
+			try {
+			 dec_hmac_digest = crypto.publicDecrypt({key:pubKey,padding:constants.RSA_PKCS1_NO_PADDING},enc_hmac_digest).toString();
+		    } catch(e) {console.log(e,enc_hmac_digest,pubKey);}
 								   
 			// Test if HMAC is correct (are we recipient?)
 			const hmac = crypto.createHmac('sha256', edichain.config.fromAddress.toLowerCase());
@@ -272,6 +309,7 @@ edichain.verifySender = function(message,cb) {
 edichain.storeMessage = function(message) { console.log(message); // suggest to implement by user...
 };
 
+edichain.storeHash = function(hash,data) {};
 edichain.decryptMessage = function(message) {				
 	edichain.storeMessage(message);
 	try {
@@ -409,14 +447,30 @@ edichain.getPubKey = function(address,callback) {
 		var pubkey = "";
 		edichain.ipfs.name.resolve("/ipns/"+hash+"/pub.key",function(err,res) {	
 		if(err) {
-			console.log(err);
+			console.log("/ipns/"+hash+"/pub.key - [404]",err);
 			//throw "Unable to resolve pub key at : /ipns/"+hash+"/pub.key"; 
 			
-			return;
-		}
+			var options = {
+			  host: 'gateway.ipfs.io',
+			  port: 443,
+			  path: '/ipns/'+hash+"/pub.key",
+			  method: 'GET'
+			};
+			
+			var req = https.request(options, function(res) {			  
+			  res.setEncoding('utf8');
+			  res.on('data', function (chunk) {	
+					if(chunk.toString().indexOf('could not resolve name')>0) console.log("Public '"+options.path+"'Key Not Fetchabale (at the moment)"); 
+					else callback(chunk.toString());
+			  });
+			});
+			req.end();			
+		} else 
 		edichain.ipfs.files.rm("/"+address+".key",function(err1,res1) {					
 		edichain.ipfs.files.cp([res.Path,"/"+address+".key"],function(err,res) {
-		    if(err) { console.log(err,res); throw "Key not found at /ipns/"+hash+"/pub.key"; }			
+		    if(err) { console.log(err,res); 			
+					//throw "Key exists /"+address+".key"; ... 			
+			}			
 			edichain.ipfs.files.read("/"+address+".key",function(err,res) {		
 					if(!res) throw "Error fetching key!";
 					var buf = ''

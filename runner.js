@@ -30,9 +30,12 @@ checkOutbox = function() {
 		var recipient_end=data.indexOf(segSplit,unb_start+1);
 		var recipient=data.substr(unb_start+1,recipient_end-unb_start-1);	
 		// Nice if we would move to tmp first...
+		console.log("Outbox:",recipient);
 		edichain.sendData(recipient,data,function(tx,hash) {
 				var files = fs.readdirSync("out");
-				fs.renameSync("out/"+files[0],"sent/"+tx+"_"+hash+".edi");		
+				if(fs.existsSync("out/"+files[0])) {
+					fs.renameSync("out/"+files[0],"sent/"+tx+"_"+hash+".edi");		
+				}
 		});
 	}
 }
@@ -50,6 +53,11 @@ edichain.storeMessage=function(message) {
 	//}	
 } 
 
+edichain.storeHash = function(hash,data) {
+	if(!fs.existsSync("hash")) fs.mkdirSync("hash");
+	fs.writeFileSync("hash/"+hash+".json",data);
+}
+
 var old_inbox_length=0;
 checkInbox = function() {
  if(!fs.existsSync("in")) fs.mkdirSync("in");
@@ -65,14 +73,17 @@ var interval_semaphore=false;
 var interval = function() {
 	if(interval_semaphore) return;
 	interval_semaphore=true;
-		checkOutbox();	
+		try { checkOutbox(); } catch(e) {console.log(e);}
 		try { checkInbox(); } catch(e) {console.log(e);}
 	interval_semaphore=false;
 }
   
 var cb = function() {
+		//edichain.decryptMessageHash('QmUSgwepqBUKJFt2KHmLVFrPo5Ba4HDRK9Le7wRh7MY1Ne',new edichain.message(),this);
+		edichain.config.lastMsgCnt=5;
+		try { checkOutbox(); } catch(e) {console.log(e);}
 		try { checkInbox(); } catch(e) {console.log(e);}
-		setInterval(interval,20000);
+		setInterval(function() {interval();},20000);
 }
 
 var echain = new edichain.bootstrap({bootstrap_callback:cb});

@@ -1,6 +1,6 @@
 {
   "name": "edichain",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Provides a basic integration for ipfs (storage/distribution) and ethereum blockchain (validation/authorization) based EDIfact message exchange.  ",
   "main": "edichain.js",
   "scripts": {
@@ -11,8 +11,9 @@
   "dependencies": {
     "ipfs-api": "^6.0.3",    
     "node-forge": "^0.6.40",
+    "node-rsa": "^0.4.0",
     "web3": "^0.16.0",
-	"winston": "^2.2.0"	
+    "winston": "^2.2.0"
   },
   "devDependencies": {},
   "repository": {
@@ -24,7 +25,8 @@
     "ethereum",
     "blockchain",
     "ipfs",
-    "pki"
+    "pki",
+	"message exchange"
   ],
   "bugs": {
     "url": "https://github.com/zoernert/edichain/issues"
