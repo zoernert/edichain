@@ -10,7 +10,7 @@
 	
 */
 
-require("./bootstrap.js");
+require("./edichain.js");
 
 var forge = require('node-forge');
 var fs = require("fs");
@@ -73,15 +73,16 @@ edichain.storeMessage=function(message) {
 	if(!message.data) {} else
 	if(message.data.length>0) {
 		var m = {};
+		var json = message.data.substr(0,message.data.lastIndexOf("}")+1);
 		try {
-			m = JSON.parse(message.data);	
-			console.log(m);			
-		} catch(e) {}
-		if(m.data) {
-			fs.writeFileSync("in/edi/"+message.addr+"_"+m.data.filename,forge.util.decode64(m.data));
+			m = JSON.parse(json);						
+		} catch(e) {console.log(e);}
+		if(m.filename) {
+			fs.writeFileSync("in/edi/"+message.addr+"_"+m.filename,forge.util.decode64(m.data));
 		} else 
 		{
-			fs.writeFileSync("in/edi/"+message.addr+".edi",message.data);	
+			console.log(m);
+			fs.writeFileSync("in/edi/"+message.addr+".edi",forge.util.decode64(m.data));	
 		}
 	}
 	  var m=message;
@@ -117,11 +118,11 @@ var interval = function() {
   
 var cb = function() {
 		//edichain.decryptMessageHash('QmUSgwepqBUKJFt2KHmLVFrPo5Ba4HDRK9Le7wRh7MY1Ne',new edichain.message(),this);
-		edichain.config.lastMsgCnt=3;
+		edichain.config.lastMsgCnt=9;
 		checkOutbox(); 
 		try { checkInbox(); } catch(e) {console.log(e);}
 		setInterval(function() {interval();},20000);
 }
 
-var echain = new edichain.bootstrap({bootstrap_callback:cb,ipfsPeer:'/ip4/52.28.178.76/tcp/4001'});
+var echain = new edichain.bootstrap({bootstrap_callback:cb,ipfsPeer:'/ip4/62.75.241.218/tcp/4001/ipfs/QmSPtbb8VUVs1k5spJfDhrUc1mzdsC5FKGZpx1FSfhjmze'});
 

@@ -118,6 +118,7 @@ Internally this script is using winston as logger and creates a tx.log file cont
 https://blog.stromhaltig.de/ 
 
 ## Release History
+* 0.0.10  Maintainance Release (Fix Issue #2)
 * 0.0.9 Encapsulated IPFS cloud WORM in order to allow providers as alternative
 * 0.0.5 Updated Logger, several fixes in message handling
 * 0.0.1 Initial release

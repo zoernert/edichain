@@ -13,7 +13,7 @@ var NodeRSA = require('node-rsa');
 edichain = function() {};
 
 edichain.bootstrap=function(config) {
-		var c = { version:'0.0.9' };
+		var c = { version:'0.0.10' };
 		if(!config.ipfsAPI)  c.ipfsAPI='/ip4/127.0.0.1/tcp/5001'; else c.ipfsAPI=config.ipfsAPI;		
 		if(!c.lastMsgCnt) c.lastMsgCnt=0;		
 		edichain.ipfs = ipfsAPI(c.ipfsAPI);
@@ -88,7 +88,7 @@ edichain.storage.writeObject = function(data,callback) {
 	});
 };
 
-edichain.storage.readObject = function(hash,cb) {
+edichain.storage.readObject = function(hash,cb) {	console.log("Requested Hash:",hash);
 	edichain.ipfs.cat(hash,function(err,res) {
 					if(err) { throw err; }
 					var buf = ''
@@ -99,7 +99,8 @@ edichain.storage.readObject = function(hash,cb) {
 						.on('data', (data) => {
 						  buf += data
 						})
-						.on('end', () => {	
+						.on('end', () => {
+								console.log("/",hash);						
 								cb(JSON.parse(buf));
 						});
 	});
