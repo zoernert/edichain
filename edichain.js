@@ -27,7 +27,12 @@ edichain.bootstrap=function(config) {
 					  new (winston.transports.File)({ filename: 'tx.log' })
 					]
 				  });
-
+		edichain.storage.log = new (winston.Logger)({
+					transports: [
+					  new (winston.transports.Console)(),
+					  new (winston.transports.File)({ filename: 'storage.log' })
+					]
+		});
 		if(config.bootstrap_callback) c.bootstrap_callback=config.bootstrap_callback;
 		if(config.rpcProvider) c.rpcProvider=config.rpcProvider; else c.rpcProvider='http://localhost:8545';		
 		if(config.path) c.path=config.path; else c.path="./";		
@@ -50,7 +55,7 @@ edichain.bootstrap=function(config) {
 				} 
 				c.fromAddress=web3.eth.accounts[0]; 		
 		}
-		if(config.pubRegistrarAddress) c.pubRegistrarAddress=config.pubRegistrarAddress; else c.pubRegistrarAddress="0x4CC3C679E69CD21710E908aa3777DEbe6Cc776Ed";
+		if(config.pubRegistrarAddress) c.pubRegistrarAddress=config.pubRegistrarAddress; else c.pubRegistrarAddress="0x5b2fF75d7EaA47Db475707DAE12A688102ef4290";
 		if(config.pwd) { web3.personal.unlockAccount(c.fromAddress, config.pwd, 86400); c.pwd=config.pwd;} else {
 			try {
 			web3.personal.unlockAccount(c.fromAddress,c.ipfsID,86400);
@@ -81,14 +86,16 @@ edichain.storage = function() {};
 edichain.storage.prefix="/ipfs/";
 
 edichain.storage.writeObject = function(data,callback) {
+	edichain.storage.log.info('add',{'data':data});
 	edichain.ipfs.files.add(new Buffer(JSON.stringify(data)),function(err,res) {
 			if(err) throw err;
 			data.hash=res[0].path;
+			edichain.storage.log.info('/add',{'data':data});
 			callback(data);	
 	});
 };
 
-edichain.storage.readObject = function(hash,cb) {	console.log("Requested Hash:",hash);
+edichain.storage.readObject = function(hash,cb) {	edichain.storage.log.debug('read',{'hash':hash});
 	edichain.ipfs.cat(hash,function(err,res) {
 					if(err) { throw err; }
 					var buf = ''
@@ -100,7 +107,7 @@ edichain.storage.readObject = function(hash,cb) {	console.log("Requested Hash:"
 						  buf += data
 						})
 						.on('end', () => {
-								console.log("/",hash);						
+								edichain.storage.log.debug('/read',{'hash':hash});
 								cb(JSON.parse(buf));
 						});
 	});
@@ -113,7 +120,6 @@ edichain.bootstrap.prototype.config = {};
 
 edichain.bootstrap.prototype.init2 = function() {
 	console.log("Bootstrap: Phase1 finished");
-	// Check if everything is set on IPFS - if not publish	
 	var usertRegistration = function() {
 		
 		edichain.storage.writeObject({pubkey:edichain.config.pem_data},function(data) {
@@ -272,7 +278,7 @@ edichain.decryptMessageHash = function(hash,message,cb) {
 							var decrypted = decipher.update(new Buffer(m.data,'base64'), 'hex', 'utf8');
 							decrypted += decipher.final('utf8');
 							if(message) {
-								message.data=decrypted;
+								message.content=decrypted;
 								message.hmac_digest=m.hmac_digest;
 								message.hmac_from=m.hmac_from;
 								if(cb) {
@@ -282,8 +288,67 @@ edichain.decryptMessageHash = function(hash,message,cb) {
 						} catch(e) {console.log("Decryption Warning:",e);}									
 					} else { 
 						console.log("Message cryption warning!");	
-						m.data="";
-						message.data="";
+						m.content="";
+						message.content="";
+						//cb(m);
+						cb(message);
+					}
+			});
+				
+}
+
+edichain.decryptSentHash = function(hash,message,cb) {
+        var ret=false;
+		edichain.storage.readObject(hash,function(m) {										
+					if((m.data)&&(m.hmac_digest)) {
+						try {	
+						   var enc_hmac_digest = new Buffer(m.hmac_digest,'base64');		
+							// RSA_PKCS1_PADDING
+							//
+							var dec_hmac_digest ="";
+							
+						   try { dec_hmac_digest = crypto.privateDecrypt({key:edichain.config.pom_data,padding: constants.RSA_PKCS1_NO_PADDING},enc_hmac_digest); } catch(e) {}
+						   if(dec_hmac_digest=="") {try { dec_hmac_digest = crypto.privateDecrypt({key:edichain.config.pom_data,padding: constants.RSA_PKCS1_NO_PADDING},enc_hmac_digest); } catch(e) {}}
+						   if(dec_hmac_digest=="") {try { dec_hmac_digest = crypto.privateDecrypt({key:edichain.config.pom_data,padding: constants.RSA_PKCS1_NO_PADDING},enc_hmac_digest); } catch(e) {}}
+						   
+						   if(dec_hmac_digest=="") {try { 
+						   dec_hmac_digest = edichain.config.pom.decrypt(forge.util.decode64(enc_hmac_digest),'RSA-OAEP'); } catch(e) {}}
+						   
+						   if(dec_hmac_digest=="") {try { 
+						   var key = new NodeRSA(edichain.config.pom_data);
+						   
+						   dec_hmac_digest = key.decrypt(enc_hmac_digest,'utf8');
+						   
+						   } catch(e) {console.log(e);}}
+						   
+						   
+						   if( dec_hmac_digest=="") throw "No PADDING FOUND";
+							// Test if HMAC is correct (are we recipient?)
+							const hmac = crypto.createHmac('sha256', edichain.config.fromAddress.toLowerCase());
+							hmac.update(edichain.config.pubRegistrarAddress.toLowerCase());
+							var hmac_digest=hmac.digest('base64');
+
+							if(hmac_digest!=dec_hmac_digest.toString()) {
+								console.log("Message routing error - message hash conflict");
+							} 
+
+							var  decipher = crypto.createDecipher('aes192', dec_hmac_digest.toString());
+							decipher.setAutoPadding(false);
+							var decrypted = decipher.update(new Buffer(m.data,'base64'), 'hex', 'utf8');
+							decrypted += decipher.final('utf8');
+							if(message) {
+								message.aperak=decrypted;
+								//message.hmac_digest=m.hmac_digest;
+								//message.hmac_from=m.hmac_from;
+								if(cb) {
+									cb(message);
+								}
+							} else  {console.log("No Message Object");}	
+						} catch(e) {console.log("Decryption Warning:",e);}									
+					} else { 
+						console.log("ACK cryption warning!");	
+						m.aperak="";
+						message.aperak="";
 						//cb(m);
 						cb(message);
 					}
@@ -319,22 +384,33 @@ edichain.verifySender = function(message,cb) {
 		}
 };
 
-edichain.storeMessage = function(message) { console.log(message); // suggest to implement by user...
+edichain.storeMessage = function(message) { 
+	edichain.message_cache[message.addr]=message;
 };
+
+edichain.storeSent = function(message) { 
+	edichain.message_sent[message.addr]=message;
+};
+
 
 edichain.storeHash = function(hash,data) {};
 edichain.decryptMessage = function(message) {				
 	edichain.storeMessage(message);
 	try {
+			console.log("Decrypt",message.hash_msg);
 			edichain.decryptMessageHash(message.hash_msg,message,function(m) {
 				try {
 							edichain.storeMessage(m);
+							
 							edichain.verifySender(m,function(m) {			
 								try 
 								{
 										if(m.hash_ack.length<2) {
-											edichain.ackMessage(m,JSON.stringify(m.hash_msg));
+											//edichain.ackMessage(m,JSON.stringify(m.hash_msg));
 										}
+										var json = m.content.substr(0,m.content.lastIndexOf("}")+1);
+										m.content=JSON.parse(json);
+										m.content.edi=forge.util.decode64(m.content.data);
 										edichain.storeMessage(m);
 								} catch(e) {
 									m.err=e;
@@ -351,7 +427,64 @@ edichain.decryptMessage = function(message) {
 	 edichain.storeMessage(message);			 
 	 }
 };
+edichain.decryptAck = function(message) {	
+	console.log("storeSent",message);
+	edichain.storeSent(message);
+	try {
+			
+			edichain.decryptSentHash(message.hash_ack,message,function(m) {
+				try {							
+							edichain.storeSent(m);
+							//var json = m.data.substr(0,m.data.lastIndexOf("}")+1);
+							//m.aperak=JSON.parse(json);
+							//m.aperak.edi=forge.util.decode64(m.aperak.data);
+							
+				} catch(e) {
+					m.err=e;
+					edichain.storeSent(m);			 
+				}
+			 });
+	 } catch(e) {
+	 message.err=e;
+	 edichain.storeSent(message);			 
+	 }
+};
+edichain.ackMessageByAddr = function(addr,payload,cb) {
+	if(edichain.message_cache[addr]) {
+	 var ackm=edichain.message_cache[addr];
+	 var sendDataWithPubKey=function(to_key) {
+		try {
+		const hmac = crypto.createHmac('sha256', ackm.from.toLowerCase());
+		hmac.update(edichain.config.pubRegistrarAddress.toLowerCase());		
+		var hmac_digest=hmac.digest('base64');
 
+		var cipher = crypto.createCipher('aes192', hmac_digest);
+
+		var encrypted = cipher.update(payload, 'utf8', 'base64');
+		encrypted += cipher.final('base64');
+		var pubkey = forge.pki.publicKeyFromPem(to_key);
+		var key = new NodeRSA(to_key);			
+		var enc_hmac_digest = key.encrypt(hmac_digest,'base64');
+		
+		var enc_hmac_from = crypto.privateEncrypt({key:edichain.config.pom_data,padding:constants.RSA_PKCS1_PADDING}, new Buffer(hmac_digest));
+		
+		var enc_data = {
+			hmac_digest:enc_hmac_digest.toString('base64'),
+			hmac_from:enc_hmac_from.toString('base64'),
+			data:encrypted
+			};
+		
+		edichain.storage.writeObject(enc_data,function(obj) {
+			edichain.sendAckMessage(ackm.addr.toLowerCase(),obj.hash);					
+		});
+		
+		} catch(e) {console.log("Error sendDataWithPubKey",e);}
+	};	
+	
+	edichain.getPubKey(ackm.from,sendDataWithPubKey);
+		
+	} else throw "Message not found for ACK";
+};
 
 edichain.ackMessage = function(message,payload_string) {				
 		
@@ -382,7 +515,7 @@ edichain.sendAckMessage = function(addr,hash) {
 			if(!error)
 				{ 
 					console.log("TX Hash ACK:"+result);
-					edichain.txlog.info('ackMsg',{'result':result,'addr':addr,'hash':hash});
+					edichain.txlog.info('ackMsg',{'result':result,'addr':addr,'hash':hash});					
 				}
 			else
 				console.error(error);
@@ -390,17 +523,132 @@ edichain.sendAckMessage = function(addr,hash) {
 };
 
 edichain.message = function() {};
+edichain.message_cache = [];
+edichain.message_sent = [];
 
-edichain.updateInbox = function() {
-		// Changed in 0.0.6 to a Step by Step processing				
-		edichain.config.inboxBlock=web3.eth.blockNumber;		
-		var msg_addr="";		
-		
-		var msg_addr = edichain.config.registrarContract.msgs(edichain.config.fromAddress,edichain.config.lastMsgCnt+1);	
-		if(msg_addr.length!=2) {
-			var msg = web3.eth.contract(edichain.config.messageAbi).at(msg_addr);					
-			try {
-				var m=new edichain.message();
+edichain.getTxLog = function(cb) {
+	var options = {	
+		limit: 10,
+		from:   new Date - 30*24 * 60 * 60 * 1000,	
+		order: 'desc',
+		fields: ['message','timestamp','result','to','hash','addr']
+	  };
+
+	  //
+	  // Find items logged between today and yesterday.
+	  //
+	  edichain.txlog.query(options, function (err, results) {
+		if (err) {
+		  throw err;
+		}
+
+		cb(results);
+	  });
+}
+edichain.getAck = function(hash,to) {
+	var i=0;
+	var msg_addr="";
+	do {
+		msg_addr = edichain.config.registrarContract.msgs(to,i++);	
+		var msg=web3.eth.contract(edichain.config.messageAbi).at(msg_addr);
+		if((msg.from()==edichain.config.fromAddress)&&(msg.hash_msg()==hash)) {
+				if(msg.hash_ack().length()>2) {
+							return msg;
+				}					
+		}				
+	} while(msg_addr.length>2);
+}
+
+edichain.getSentByNumber = function(num) {
+	msg_addr = edichain.config.registrarContract.sent(edichain.config.fromAddress,num);		
+	if(msg_addr.length>3) if(!edichain.message_sent[msg_addr]) {	
+				var m = new edichain.message();	
+				var msg=web3.eth.contract(edichain.config.messageAbi).at(msg_addr);		
+				m.addr=msg_addr;
+				m.from=msg.from();
+				m.to=msg.to();
+				m.hash_msg=msg.hash_msg();
+				m.timestamp_msg=msg.timestamp_msg();
+				m.hash_ack=msg.hash_ack();				
+				m.timestamp_ack=msg.timestamp_ack();				
+				edichain.message_sent[msg_addr]=m;				
+	}
+	return edichain.message_sent[msg_addr];
+}
+
+edichain.getMessageByNumber = function(num) {
+	msg_addr = edichain.config.registrarContract.msgs(edichain.config.fromAddress,num);		
+	if(msg_addr.length>3) if(!edichain.message_cache[msg_addr]) {	
+				var m = new edichain.message();	
+				var msg=web3.eth.contract(edichain.config.messageAbi).at(msg_addr);		
+				m.addr=msg_addr;
+				m.from=msg.from();
+				m.to=msg.to();
+				m.hash_msg=msg.hash_msg();
+				m.timestamp_msg=msg.timestamp_msg();
+				m.hash_ack=msg.hash_ack();				
+				m.timestamp_ack=msg.timestamp_ack();				
+				edichain.message_cache[msg_addr]=m;				
+	}
+	return edichain.message_cache[msg_addr];
+}
+
+edichain.decryptMessageByAddress=function(addr) {
+	edichain.decryptMessage(edichain.message_cache[addr]);
+}
+
+edichain.decryptMessageByNumber=function(num) {
+	msg_addr = edichain.config.registrarContract.msgs(edichain.config.fromAddress,num);		
+	if(msg_addr.length>3) if(!edichain.message_cache[msg_addr]) {	
+				var m = new edichain.message();	
+				var msg=web3.eth.contract(edichain.config.messageAbi).at(msg_addr);		
+				m.addr=msg_addr;
+				m.from=msg.from();
+				m.to=msg.to();
+				m.hash_msg=msg.hash_msg();
+				m.timestamp_msg=msg.timestamp_msg();
+				m.hash_ack=msg.hash_ack();				
+				m.timestamp_ack=msg.timestamp_ack();				
+				edichain.message_cache[msg_addr]=m;					
+	}
+	if(!edichain.message_cache[msg_addr].content) {
+		edichain.decryptMessage(edichain.message_cache[msg_addr]);
+		return true;
+	} 
+	return false;
+}
+edichain.decryptSentByNumber=function(num) {
+	msg_addr = edichain.config.registrarContract.sent(edichain.config.fromAddress,num);		
+	if(msg_addr.length>3) if(!edichain.message_sent[msg_addr]) {	
+				var m = new edichain.message();	
+				var msg=web3.eth.contract(edichain.config.messageAbi).at(msg_addr);		
+				m.addr=msg_addr;
+				m.from=msg.from();
+				m.to=msg.to();
+				m.hash_msg=msg.hash_msg();
+				m.timestamp_msg=msg.timestamp_msg();
+				m.hash_ack=msg.hash_ack();				
+				m.timestamp_ack=msg.timestamp_ack();				
+				edichain.message_sent[msg_addr]=m;					
+	}
+	if(!edichain.message_sent[msg_addr].aperak) {
+		edichain.decryptAck(edichain.message_sent[msg_addr]);
+		return true;
+	} 
+	return false;
+}
+
+edichain.getSentMessageCount=function() {	
+	var i=0;
+	try {
+		i=fs.readFileSync(edichain.config.path+'lastsentcnt.txt',{encoding:"utf-8"});	
+	} catch(e) {}
+	
+	do {
+		msg_addr = edichain.config.registrarContract.msgs(edichain.config.fromAddress,i++);	
+		if(msg_addr.length>3) if(!edichain.message_sent[msg_addr]) {					
+				var m = new edichain.message(); 
+				var msg=web3.eth.contract(edichain.config.messageAbi).at(msg_addr);		
 				m.addr=msg_addr;
 				m.from=msg.from();
 				m.to=msg.to();
@@ -408,13 +656,42 @@ edichain.updateInbox = function() {
 				m.timestamp_msg=msg.timestamp_msg();
 				m.hash_ack=msg.hash_ack();				
 				m.timestamp_ack=msg.timestamp_ack();
-				m.data="";
-				edichain.decryptMessage(m);			
-				edichain.config.lastMsgCnt++;
-			} catch(e)  {console.log(e);}					
-		}		
-		return edichain.config.lastMsgCnt;
+				m.content="";
+				edichain.message_sent[msg_addr]=m;
+				fs.writeFileSync(edichain.config.path+'lastsentcnt.txt',i);
+		}
+	} while(msg_addr.length>3) 
+	i=i-1;
+	return i;
 };
+
+edichain.getReceivedMessageCount=function() {	
+	var i=0;
+	try {
+		i=fs.readFileSync(edichain.config.path+'lastmsgcnt.txt',{encoding:"utf-8"});	
+	} catch(e) {}
+	
+	do {
+		msg_addr = edichain.config.registrarContract.msgs(edichain.config.fromAddress,i++);	
+		if(msg_addr.length>3) if(!edichain.message_cache[msg_addr]) {					
+				var m = new edichain.message(); 
+				var msg=web3.eth.contract(edichain.config.messageAbi).at(msg_addr);		
+				m.addr=msg_addr;
+				m.from=msg.from();
+				m.to=msg.to();
+				m.hash_msg=msg.hash_msg();
+				m.timestamp_msg=msg.timestamp_msg();
+				m.hash_ack=msg.hash_ack();				
+				m.timestamp_ack=msg.timestamp_ack();
+				m.content="";
+				edichain.message_cache[msg_addr]=m;
+				fs.writeFileSync(edichain.config.path+'lastmsgcnt.txt',i);
+		}
+	} while(msg_addr.length>3) 
+	i=i-1;
+	return i;
+};
+
 
 edichain.retrieveABI = function() {
 

@@ -1,19 +1,23 @@
 {
   "name": "edichain",
-  "version": "0.0.10",
-  "description": "Provides a basic integration for ipfs (storage/distribution) and ethereum blockchain (validation/authorization) based EDIfact message exchange.  ",
+  "version": "0.0.11",
+  "description": "Provides a basic integration for ipfs (storage/distribution) and ethereum blockchain (validation/authorization) based EDIfact message exchange.",
   "main": "edichain.js",
   "scripts": {
+	"start": "node ediserver.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Thorsten Zoerner <me@thorsten-zoerner.com> (https://blog.stromhaltig.de)",
-  "license": "ISC",
+  "author": { "name" : "Thorsten Zoerner"
+				, "email" : "me@thorsten-zoerner.com"
+				, "url" : "https://blog.stromhaltig.de/"
+  },
+  "license": "MIT",
   "dependencies": {
-    "dynamodb": "^0.3.6",
     "ipfs-api": "^6.0.3",
+    "json-rpc2": "^1.0.2",
     "node-forge": "^0.6.40",
+    "node-json-rpc": "0.0.1",
     "node-rsa": "^0.4.0",
-    "s3fs": "^2.4.8",
     "web3": "^0.16.0",
     "winston": "^2.2.0"
   },
@@ -22,6 +26,7 @@
     "type": "git",
     "url": "git+https://github.com/zoernert/edichain.git"
   },
+  { "bin" : { "EDIserver" : "./ediserver.js" } },
   "keywords": [
     "edifact",
     "ethereum",

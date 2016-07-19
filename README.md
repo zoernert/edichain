@@ -27,7 +27,9 @@ Requires geth to be started and synced blockchain.
 geth --rpc --unlock "0x12345678..." --rpcapi "eth,net,web3,personal" --rpcaddr "localhost"  --rpcport "8545" console  
 ```
  
-## Usage
+## Usage 
+
+### As module
 
 Basic
 ```javascript
@@ -43,6 +45,26 @@ Basic
 	var echain = new edichain.bootstrap(config);	
 			
 ``` 
+
+### As JSON-RPC2 service
+
+Namespace: edichain
+
+#### Exposed Methods
+<table>
+<tr><td>sendEdi</td></tr>
+<tr><td>receivedMessageCount</td></tr>	
+<tr><td>sentMessageCount</td></tr>
+<tr><td>decryptMessageByNumber</td></tr>
+<tr><td>decryptSentByNumber</td></tr>
+<tr><td>getMessageByNumber</td></tr>
+<tr><td>getSentByNumber</td></tr>
+<tr><td>chainAccount</td></tr>
+<tr><td>ackMessageByAddr</td></tr>
+<tr><td>getTxLog</td></tr>
+<tr><td>getAck</td></tr>
+</table>
+
 ### Configuration Options
 <table>
 	<tr><td>bootrap_callback</td><td>Required</td><td>Your Callback function to be called as soon as startup is completed</td></tr>
@@ -118,6 +140,7 @@ Internally this script is using winston as logger and creates a tx.log file cont
 https://blog.stromhaltig.de/ 
 
 ## Release History
+* 0.0.11 Added JSON-RPC2 Interface as sample implementation
 * 0.0.10  Maintainance Release (Fix Issue #2)
 * 0.0.9 Encapsulated IPFS cloud WORM in order to allow providers as alternative
 * 0.0.5 Updated Logger, several fixes in message handling
