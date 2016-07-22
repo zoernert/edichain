@@ -13,7 +13,7 @@ var NodeRSA = require('node-rsa');
 edichain = function() {};
 
 edichain.bootstrap=function(config) {
-		var c = { version:'0.0.14' };
+		var c = { version:'0.0.17' };
 		if(!config.ipfsAPI)  c.ipfsAPI='/ip4/127.0.0.1/tcp/5001'; else c.ipfsAPI=config.ipfsAPI;		
 		if(!c.lastMsgCnt) c.lastMsgCnt=0;		
 		edichain.ipfs = ipfsAPI(c.ipfsAPI);

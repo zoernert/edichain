@@ -131,4 +131,4 @@ var rpcServer = function() {
 
 
 }
-var echain = new edichain.bootstrap({bootstrap_callback:rpcServer,pfsPeer:'/ip4/62.75.241.218/tcp/4001/ipfs/QmSPtbb8VUVs1k5spJfDhrUc1mzdsC5FKGZpx1FSfhjmze'});
+var echain = new edichain.bootstrap({bootstrap_callback:rpcServer,pfsPeer:'/ip4/62.75.241.218/tcp/4001/ipfs/QmSPtbb8VUVs1k5spJfDhrUc1mzdsC5FKGZpx1FSfhjmze',path:"../../"});
