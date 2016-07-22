@@ -1,5 +1,5 @@
 $.jsonRPC.setup({
-  endPoint: 'http://localhost:8000/',
+  endPoint: 'http://'+window.location.hostname+':8000/',
   namespace: 'edichain'
 });
 
