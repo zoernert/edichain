@@ -32,7 +32,11 @@ var rpcServer = function() {
 	  callback(error, result);
 	};
 	
-
+	function getBalance(args, opt, callback) {
+	  var error, result;  	   
+	  result=edichain.getBalance();	  
+	  callback(error, result);
+	};
 	function getMessageByNumber(args, opt, callback) {
 	  var error, result;  	   
 	  callback(error,edichain.getMessageByNumber(args[0]));
@@ -111,7 +115,8 @@ var rpcServer = function() {
 		'chainAccount':chainAccount,
 		'ackMessageByAddr':ackMessageByAddr,
 		'getTxLog':getTxLog,
-		'getAck':getAck
+		'getAck':getAck,
+		'getBalance':getBalance
 	});	
 		
 	server.listen(8000, 'localhost');
@@ -120,7 +125,8 @@ var rpcServer = function() {
 	for(var i=c-1;((i>=0)&&(i>c-3));i--) {
 		edichain.getMessageByNumber(i);
 	}
-	console.log("Server started on http://localhost:8000");
+	console.log("RPC Server started on http://localhost:8000");
+	console.log("Web UI might be available on http://localhost:8080/ipns/QmSPtbb8VUVs1k5spJfDhrUc1mzdsC5FKGZpx1FSfhjmze/index.html ");
 	
 
 

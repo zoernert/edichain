@@ -12,6 +12,10 @@ Provides a basic integration for ipfs (storage/distribution) and ethereum blockc
 ## Installation
 ```
   npm install edichain --save
+  
+  cd node_modules/edichain
+  
+  npm start
 ```
 ## Requirement
 

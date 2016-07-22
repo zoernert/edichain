@@ -13,7 +13,7 @@ var NodeRSA = require('node-rsa');
 edichain = function() {};
 
 edichain.bootstrap=function(config) {
-		var c = { version:'0.0.10' };
+		var c = { version:'0.0.14' };
 		if(!config.ipfsAPI)  c.ipfsAPI='/ip4/127.0.0.1/tcp/5001'; else c.ipfsAPI=config.ipfsAPI;		
 		if(!c.lastMsgCnt) c.lastMsgCnt=0;		
 		edichain.ipfs = ipfsAPI(c.ipfsAPI);
@@ -49,16 +49,20 @@ edichain.bootstrap=function(config) {
 		} else {
 			edichain.retrieveABI();
 		}
+
+		if(config.pubRegistrarAddress) c.pubRegistrarAddress=config.pubRegistrarAddress; else c.pubRegistrarAddress="0x5b2fF75d7EaA47Db475707DAE12A688102ef4290";
+		try {
+			web3.eth.accounts.length;
+		} catch(e) {throw "EDIchain Error:\n\rPlease check if geth is running. You might try 'geth --rpc --rpcapi \"eth,net,web3,personal\" --rpcaddr \"localhost\"  --rpcport \"8545\"'\n\r\n\r"}
 		if(config.fromAddress) c.fromAddress=config.fromAddress; else { 
 				if(web3.eth.accounts.length==0) {
-						web3.personal.newAccount(c.ipfsID);
+						web3.personal.newAccount(c.pubRegistrarAddress.substr(5,19));
 				} 
 				c.fromAddress=web3.eth.accounts[0]; 		
 		}
-		if(config.pubRegistrarAddress) c.pubRegistrarAddress=config.pubRegistrarAddress; else c.pubRegistrarAddress="0x5b2fF75d7EaA47Db475707DAE12A688102ef4290";
 		if(config.pwd) { web3.personal.unlockAccount(c.fromAddress, config.pwd, 86400); c.pwd=config.pwd;} else {
 			try {
-			web3.personal.unlockAccount(c.fromAddress,c.ipfsID,86400);
+			web3.personal.unlockAccount(c.fromAddress,c.pubRegistrarAddress.substr(5,19),86400);
 			} catch(e) {}
 		}
 		this.config=c;
@@ -67,12 +71,12 @@ edichain.bootstrap=function(config) {
 		edichain.config=c;
 		c=this.config;
 		console.log("Starting Account:"+c.fromAddress);
-		c.bootstrap_fnct=this.init2;
+		c.bootstrap_fnct=this.ensureSync;
 		c.bootstrap1=setInterval(function() {
 			if(c.pem&&c.fromAddress&&edichain.config.messageAbi&&edichain.config.registrarAbi) {
 				clearInterval(c.bootstrap1);
 				c.bootstrap1=null;
-				c.bootstrap_fnct();
+				c.bootstrap_fnct(this.init2);
 			} else {
 			
 			}
@@ -95,7 +99,8 @@ edichain.storage.writeObject = function(data,callback) {
 	});
 };
 
-edichain.storage.readObject = function(hash,cb) {	edichain.storage.log.debug('read',{'hash':hash});
+edichain.storage.readObject = function(hash,cb) {
+	edichain.storage.log.debug('read',{'hash':hash});
 	edichain.ipfs.cat(hash,function(err,res) {
 					if(err) { throw err; }
 					var buf = ''
@@ -117,9 +122,24 @@ edichain.storage.keyhash = "";
 
 edichain.bootstrap.prototype.config = {};
 
-
-edichain.bootstrap.prototype.init2 = function() {
+edichain.bootstrap.prototype.ensureSync = function(cb) {
 	console.log("Bootstrap: Phase1 finished");
+	console.log("Waiting for Blockchain");	
+	var bootstrapSync=setInterval(function() {
+		var sync  = web3.eth.syncing;
+		if((!sync)||(sync.currentBlock>sync.highestBlock-100000)) {
+			clearInterval(bootstrapSync);
+			bootstrap1=null;
+			edichain.init2();
+		} else {
+			console.log("Sync Blockchain:"+sync.currentBlock+"/"+sync.highestBlock);
+		}
+			
+	},10000);
+}
+
+edichain.init2 = function() {
+	console.log("Bootstrap: Blockchain synced");
 	var usertRegistration = function() {
 		
 		edichain.storage.writeObject({pubkey:edichain.config.pem_data},function(data) {
@@ -129,6 +149,7 @@ edichain.bootstrap.prototype.init2 = function() {
 		
 	}
 	edichain.config.registrarContract=web3.eth.contract(edichain.config.registrarAbi).at(edichain.config.pubRegistrarAddress);	
+	console.log(edichain.config.registrarContract.regadr(edichain.config.fromAddress));
 	var pem_hash = edichain.config.registrarContract.regadr(edichain.config.fromAddress)[1];	
 	if(pem_hash.length>4) {
 		edichain.storage.readObject(pem_hash,function(data) {				
@@ -183,7 +204,9 @@ edichain.bootstrap.prototype.createNewKeypair=function() {
 		}); 
 };
 
-
+edichain.getBalance = function() {
+		return web3.eth.getBalance(edichain.config.fromAddress);
+}
 	
 edichain.sendData = function(to,data,cb) {
  

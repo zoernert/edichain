@@ -1,6 +1,6 @@
 {
   "name": "edichain",
-  "version": "0.0.11",
+  "version": "0.0.15",
   "description": "Provides a basic integration for ipfs (storage/distribution) and ethereum blockchain (validation/authorization) based EDIfact message exchange.",
   "main": "edichain.js",
   "scripts": {
@@ -26,7 +26,7 @@
     "type": "git",
     "url": "git+https://github.com/zoernert/edichain.git"
   },
-  { "bin" : { "EDIserver" : "./ediserver.js" } },
+  
   "keywords": [
     "edifact",
     "ethereum",
