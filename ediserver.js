@@ -5,6 +5,7 @@
 require("./edichain.js");
 var forge = require('node-forge');
 var rpc = require('json-rpc2');
+var fs = require('fs');
 
 var server = rpc.Server.$create({
     'websocket': true, // is true by default
@@ -126,9 +127,15 @@ var rpcServer = function() {
 		edichain.getMessageByNumber(i);
 	}
 	console.log("RPC Server started on http://localhost:8000");
-	console.log("Web UI might be available on http://localhost:8080/ipns/QmSPtbb8VUVs1k5spJfDhrUc1mzdsC5FKGZpx1FSfhjmze/index.html ");
-	
-
-
+	console.log("Web UI might be available on http://localhost:8080/ipns/QmSPtbb8VUVs1k5spJfDhrUc1mzdsC5FKGZpx1FSfhjmze/index.html ");	
 }
-var echain = new edichain.bootstrap({bootstrap_callback:rpcServer,pfsPeer:'/ip4/62.75.241.218/tcp/4001/ipfs/QmSPtbb8VUVs1k5spJfDhrUc1mzdsC5FKGZpx1FSfhjmze',path:"../../"});
+var config = {};
+
+try {
+	config=JSON.parse(readFileSync("../../server.conf.json"));
+} catch(e) {}
+config.boostrap_callback=rpcServer;
+config.pfsPeer='/ip4/62.75.241.218/tcp/4001/ipfs/QmSPtbb8VUVs1k5spJfDhrUc1mzdsC5FKGZpx1FSfhjmze';
+
+
+var echain = new edichain.bootstrap({bootstrap_callback:rpcServer,pfsPeer:,path:"../../"});
