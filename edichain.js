@@ -127,7 +127,7 @@ edichain.bootstrap.prototype.ensureSync = function(cb) {
 	console.log("Waiting for Blockchain");	
 	var bootstrapSync=setInterval(function() {
 		var sync  = web3.eth.syncing;
-		if((!sync)||(sync.currentBlock>sync.highestBlock-100000)) {
+		if((!sync)||(sync.currentBlock>sync.highestBlock-10000)) {
 			clearInterval(bootstrapSync);
 			bootstrap1=null;
 			edichain.init2();
