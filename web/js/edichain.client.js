@@ -5,8 +5,8 @@ $.jsonRPC.setup({
 
 edichain = {};
 edichain.client = {};
-edichain.client.msgcount = 0;
-edichain.client.sentcount = 0;
+edichain.client.msgcount = -1;
+edichain.client.sentcount = -1;
 
 edichain.client.checkBalance = function() {
 	$.jsonRPC.request('getBalance',{
@@ -51,10 +51,11 @@ edichain.client.receivedMessageCount = function() {
 	});
 	edichain.client.checkBalance();
 };
-edichain.client.ediModal=function(num) {
+edichain.client.ediModal=function(num) {	
 	$.jsonRPC.request('getMessageByNumber',{
 			params:[num],
-			success:function(result) { 					
+			success:function(result) { 	
+					console.log(result);
 					if(!result.result.content) {
 						setTimeout(edichain.client.ediModal(num),2000);
 					} else {
@@ -68,8 +69,7 @@ edichain.client.ediModal=function(num) {
 edichain.client.ackModal=function(num) {
 	$.jsonRPC.request('getSentByNumber',{
 			params:[num],
-			success:function(result) { 	
-					console.log(result);
+			success:function(result) { 						
 					if(!result.result.aperak) {
 						setTimeout(edichain.client.ackModal(num),2000);
 					} else {
@@ -138,8 +138,7 @@ edichain.client.updateMsgList = function() {
 									$.jsonRPC.request('decryptMessageByNumber',{											
 											params:[$(e.toElement).attr('data')],   
 											success: function(result) {												
-												edichain.client.ediModal($(e.toElement).attr('data'));													
-												
+												edichain.client.ediModal($(e.toElement).attr('data'));
 											},
 											error: function(result) {
 											}
@@ -156,12 +155,13 @@ edichain.client.updateMsgList = function() {
 
 edichain.client.updateSentList = function() {
 		var html="<tr><th>Sent</th><th>Message Contract Address</th><th>To Account Address</th><th>Message Hash</th><th>Contrl/Aperak</th><th>Actions</th></tr>";
-		for(var i=edichain.client.sentcount;((i>=0)&&(i>edichain.client.sentcount-10));i--) {
+		for(var i=edichain.client.sentcount-1;((i>=0)&&(i>edichain.client.sentcount-10));i--) {
 				html+="<tr><td id='senttime"+i+"'>loading</td><td id='sentadr"+i+"'></td><td id='sentto"+i+"'></td><td id='senthash"+i+"'></td><td id='sentctrl"+i+"'></td><td id='sentactions"+i+"'></td></tr>";				
 				$.jsonRPC.request('getSentByNumber',{
 				   id:i,
 				   params:[i],   
-				  success: function(result) {						 
+				  success: function(result) {	
+					if(!result.result) return;			  
 					 $('#senttime'+result.id).html(new Date(result.result.timestamp_msg*1000).toLocaleDateString()+" "+new Date(result.result.timestamp_msg*1000).toLocaleTimeString());
 					 $('#sentadr'+result.id).html("<a href='http://etherscan.io/address/"+result.result.addr+"' target='_blank' title='"+result.result.addr+"'>"+result.result.addr.substr(0,15)+"...</a>");
 					 $('#sentto'+result.id).html("<a href='http://etherscan.io/address/"+result.result.to+"' target='_blank' title='"+result.result.to+"'>"+result.result.to.substr(0,15)+"...</a>");

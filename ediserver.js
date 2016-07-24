@@ -134,8 +134,8 @@ var config = {};
 try {
 	config=JSON.parse(readFileSync("../../server.conf.json"));
 } catch(e) {}
-config.boostrap_callback=rpcServer;
+config.bootstrap_callback=rpcServer;
 config.pfsPeer='/ip4/62.75.241.218/tcp/4001/ipfs/QmSPtbb8VUVs1k5spJfDhrUc1mzdsC5FKGZpx1FSfhjmze';
+config.path="../../";
 
-
-var echain = new edichain.bootstrap({bootstrap_callback:rpcServer,pfsPeer:,path:"../../"});
+var echain = new edichain.bootstrap(config);

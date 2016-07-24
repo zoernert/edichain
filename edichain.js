@@ -13,7 +13,7 @@ var NodeRSA = require('node-rsa');
 edichain = function() {};
 
 edichain.bootstrap=function(config) {
-		var c = { version:'0.0.17' };
+		var c = { version:'0.0.20' };
 		if(!config.ipfsAPI)  c.ipfsAPI='/ip4/127.0.0.1/tcp/5001'; else c.ipfsAPI=config.ipfsAPI;		
 		if(!c.lastMsgCnt) c.lastMsgCnt=0;		
 		edichain.ipfs = ipfsAPI(c.ipfsAPI);
@@ -424,16 +424,17 @@ edichain.decryptMessage = function(message) {
 			edichain.decryptMessageHash(message.hash_msg,message,function(m) {
 				try {
 							edichain.storeMessage(m);
-							
+							var json = m.content.substr(0,m.content.lastIndexOf("}")+1);
+							m.content=JSON.parse(json);
+							m.content.edi=forge.util.decode64(m.content.data);
 							edichain.verifySender(m,function(m) {			
 								try 
 								{
 										if(m.hash_ack.length<2) {
 											//edichain.ackMessage(m,JSON.stringify(m.hash_msg));
 										}
-										var json = m.content.substr(0,m.content.lastIndexOf("}")+1);
-										m.content=JSON.parse(json);
-										m.content.edi=forge.util.decode64(m.content.data);
+
+										console.log(json,m);
 										edichain.storeMessage(m);
 								} catch(e) {
 									m.err=e;
@@ -476,6 +477,7 @@ edichain.ackMessageByAddr = function(addr,payload,cb) {
 	if(edichain.message_cache[addr]) {
 	 var ackm=edichain.message_cache[addr];
 	 var sendDataWithPubKey=function(to_key) {
+
 		try {
 		const hmac = crypto.createHmac('sha256', ackm.from.toLowerCase());
 		hmac.update(edichain.config.pubRegistrarAddress.toLowerCase());		
@@ -755,6 +757,7 @@ edichain.getPubKey = function(address,callback) {
 		var reg=edichain.config.registrarContract.regadr(address);
 		if(reg[1].length<5) throw "Address "+address+" not registered at "+edichain.config.pubRegistrarAddress;
 		var hash=reg[1];
+		console.log(hash);
 		edichain.storage.readObject(hash,function(obj) {callback(obj.pubkey);});
 };
 
