@@ -13,7 +13,7 @@ var NodeRSA = require('node-rsa');
 edichain = function() {};
 
 edichain.bootstrap=function(config) {
-		var c = { version:'0.0.20' };
+		var c = { version:'0.0.21' };
 		if(!config.ipfsAPI)  c.ipfsAPI='/ip4/127.0.0.1/tcp/5001'; else c.ipfsAPI=config.ipfsAPI;		
 		if(!c.lastMsgCnt) c.lastMsgCnt=0;		
 		edichain.ipfs = ipfsAPI(c.ipfsAPI);
@@ -127,7 +127,7 @@ edichain.bootstrap.prototype.ensureSync = function(cb) {
 	console.log("Waiting for Blockchain");	
 	var bootstrapSync=setInterval(function() {
 		var sync  = web3.eth.syncing;
-		if((!sync)||(sync.currentBlock>sync.highestBlock-10000)) {
+		if(sync.currentBlock>sync.highestBlock-10000) {
 			clearInterval(bootstrapSync);
 			bootstrap1=null;
 			edichain.init2();
