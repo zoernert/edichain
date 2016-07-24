@@ -127,6 +127,15 @@ edichain.bootstrap.prototype.ensureSync = function(cb) {
 	console.log("Waiting for Blockchain");	
 	var bootstrapSync=setInterval(function() {
 		var sync  = web3.eth.syncing;
+		if(sync==false) {
+			console.log(web3.eth.defaultBlock);
+			if(web3.eth.defaultBlock=="latest") {
+				sync = {
+					currentBlock:1000,
+					highestBlock:1000					
+				}
+			}
+		}
 		if(sync.currentBlock>sync.highestBlock-10000) {
 			clearInterval(bootstrapSync);
 			bootstrap1=null;
@@ -584,9 +593,14 @@ edichain.getAck = function(hash,to) {
 	} while(msg_addr.length>2);
 }
 
-edichain.getSentByNumber = function(num) {
+edichain.getSentByNumber = function(num,force_reload) {
 	msg_addr = edichain.config.registrarContract.sent(edichain.config.fromAddress,num);		
-	if(msg_addr.length>3) if(!edichain.message_sent[msg_addr]) {	
+	if(edichain.message_sent[msg_addr]) {
+		if(edichain.message_sent[msg_addr].timestamp_ack<1) {
+			force_reload=true;
+		}
+	}
+	if(msg_addr.length>3) if((!edichain.message_sent[msg_addr])||(force_reload)) {	
 				var m = new edichain.message();	
 				var msg=web3.eth.contract(edichain.config.messageAbi).at(msg_addr);		
 				m.addr=msg_addr;
@@ -601,9 +615,14 @@ edichain.getSentByNumber = function(num) {
 	return edichain.message_sent[msg_addr];
 }
 
-edichain.getMessageByNumber = function(num) {
-	msg_addr = edichain.config.registrarContract.msgs(edichain.config.fromAddress,num);		
-	if(msg_addr.length>3) if(!edichain.message_cache[msg_addr]) {	
+edichain.getMessageByNumber = function(num,force_reload) {
+	msg_addr = edichain.config.registrarContract.msgs(edichain.config.fromAddress,num);	
+	if(edichain.message_cache[msg_addr]) {
+		if(edichain.message_cache[msg_addr].timestamp_ack<1) {
+			force_reload=true;
+		}
+	}
+	if(msg_addr.length>3) if((!edichain.message_cache[msg_addr])||force_reload) {	
 				var m = new edichain.message();	
 				var msg=web3.eth.contract(edichain.config.messageAbi).at(msg_addr);		
 				m.addr=msg_addr;

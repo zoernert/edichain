@@ -106,60 +106,62 @@ edichain.client.updateTxLog = function() {
 	
 
 }
+
+edichain.client.updateMsgByNum = function(i) {
+	$.jsonRPC.request('getMessageByNumber',{
+					   id:i,
+					   params:[i,true],   
+					  success: function(result) {						 
+						 $('#msgtime'+result.id).html(new Date(result.result.timestamp_msg*1000).toLocaleDateString()+" "+new Date(result.result.timestamp_msg*1000).toLocaleTimeString());
+						 $('#msgadr'+result.id).html("<a href='http://etherscan.io/address/"+result.result.addr+"' target='_blank' title='"+result.result.addr+"'>"+result.result.addr.substr(0,15)+"...</a>");
+						 $('#msgfrom'+result.id).html("<a href='http://etherscan.io/address/"+result.result.from+"' target='_blank' title='"+result.result.from+"'>"+result.result.from.substr(0,15)+"...</a>");
+						 $('#msghash'+result.id).html("<a href='https://gateway.ipfs.io/ipfs/"+result.result.hash_msg+"' target='_blank' title='"+result.result.hash_msg+"'>"+result.result.hash_msg.substr(0,15)+"...</a>"); 
+						 if(result.result.timestamp_ack>1) {
+							$('#msgctrl'+result.id).html(new Date(result.result.timestamp_ack*1000).toLocaleDateString()+" "+new Date(result.result.timestamp_ack*1000).toLocaleTimeString());
+						 } else {
+							$('#msgctrl'+result.id).html("<button class='btn btn-default btnaperak' id='actaperk"+result.id+"'>CONTRL/APERAK</button>");
+							$('#actaperk'+result.id).on('click',function(e) {
+									$('#txtAPERAK').val("");
+									$('#aperakModal').attr('data-num',result.id);
+									$('#aperakModal').attr('data-address',result.result.addr);
+									$('#aperakModal').modal('show');									
+							});
+						 }					 
+						 
+					var action_html="<button class='btn btn-success actedi' id='actedi"+result.id+"' data='"+result.id+"'>EDI</button>";					
+					$('#msgactions'+result.id).html(action_html);					
+					$('#actedi'+result.id).on('click',function(e) {
+										$('#ediModal').modal('show');
+										var edi="Decrypting...";
+										$('#ediPRE').text(edi);
+										$.jsonRPC.request('decryptMessageByNumber',{											
+												params:[$(e.toElement).attr('data')],   
+												success: function(result) {												
+													edichain.client.ediModal($(e.toElement).attr('data'));
+												},
+												error: function(result) {
+												}
+										});									
+						});
+					  },
+					  error: function(result) {
+						console.log("ERROR",result);
+					  }
+					});
+}
 edichain.client.updateMsgList = function() {
 		var html="<tr><th>Sent</th><th>Message Contract Address</th><th>From Account Address</th><th>Message Hash</th><th>Contrl/Aperak</th><th>Actions</th></tr>";
 		for(var i=edichain.client.msgcount-1;((i>=0)&&(i>edichain.client.msgcount-10));i--) {
-				html+="<tr><td id='msgtime"+i+"'>loading</td><td id='msgadr"+i+"'></td><td id='msgfrom"+i+"'></td><td id='msghash"+i+"'></td><td id='msgctrl"+i+"'></td><td id='msgactions"+i+"'></td></tr>";				
-				$.jsonRPC.request('getMessageByNumber',{
-				   id:i,
-				   params:[i],   
-				  success: function(result) {						 
-					 $('#msgtime'+result.id).html(new Date(result.result.timestamp_msg*1000).toLocaleDateString()+" "+new Date(result.result.timestamp_msg*1000).toLocaleTimeString());
-					 $('#msgadr'+result.id).html("<a href='http://etherscan.io/address/"+result.result.addr+"' target='_blank' title='"+result.result.addr+"'>"+result.result.addr.substr(0,15)+"...</a>");
-					 $('#msgfrom'+result.id).html("<a href='http://etherscan.io/address/"+result.result.from+"' target='_blank' title='"+result.result.from+"'>"+result.result.from.substr(0,15)+"...</a>");
-					 $('#msghash'+result.id).html("<a href='https://gateway.ipfs.io/ipfs/"+result.result.hash_msg+"' target='_blank' title='"+result.result.hash_msg+"'>"+result.result.hash_msg.substr(0,15)+"...</a>"); 
-					 if(result.result.timestamp_ack>1) {
-						$('#msgctrl'+result.id).html(new Date(result.result.timestamp_ack*1000).toLocaleDateString()+" "+new Date(result.result.timestamp_ack*1000).toLocaleTimeString());
-					 } else {
-						$('#msgctrl'+result.id).html("<button class='btn btn-default btnaperak' id='actaperk"+result.id+"'>CONTRL/APERAK</button>");
-						$('#actaperk'+result.id).on('click',function(e) {
-								$('#txtAPERAK').val("");
-								$('#aperakModal').attr('data-num',result.id);
-								$('#aperakModal').attr('data-address',result.result.addr);
-								$('#aperakModal').modal('show');									
-						});
-					 }					 
-					 
-					 $('#msgactions'+result.id).html("<button class='btn btn-success actedi' id='actedi"+result.id+"' data='"+result.id+"'>EDI</button>");
-					 $('#actedi'+result.id).on('click',function(e) {
-									$('#ediModal').modal('show');
-									var edi="Decrypting...";
-									$('#ediPRE').text(edi);
-									$.jsonRPC.request('decryptMessageByNumber',{											
-											params:[$(e.toElement).attr('data')],   
-											success: function(result) {												
-												edichain.client.ediModal($(e.toElement).attr('data'));
-											},
-											error: function(result) {
-											}
-									});									
-					});
-				  },
-				  error: function(result) {
-					console.log("ERROR",result);
-				  }
-				});
+				html+="<tr><td id='msgtime"+i+"'>loading</td><td id='msgadr"+i+"'></td><td id='msgfrom"+i+"'></td><td id='msghash"+i+"'></td><td id='msgctrl"+i+"'></td><td id='msgactions"+i+"'></td></tr>";
+				edichain.client.updateMsgByNum(i);
 		}				
 		$('#inlist').html(html);
 };
 
-edichain.client.updateSentList = function() {
-		var html="<tr><th>Sent</th><th>Message Contract Address</th><th>To Account Address</th><th>Message Hash</th><th>Contrl/Aperak</th><th>Actions</th></tr>";
-		for(var i=edichain.client.sentcount-1;((i>=0)&&(i>edichain.client.sentcount-10));i--) {
-				html+="<tr><td id='senttime"+i+"'>loading</td><td id='sentadr"+i+"'></td><td id='sentto"+i+"'></td><td id='senthash"+i+"'></td><td id='sentctrl"+i+"'></td><td id='sentactions"+i+"'></td></tr>";				
-				$.jsonRPC.request('getSentByNumber',{
+edichain.client.updateSentByNum = function (i) {
+		$.jsonRPC.request('getSentByNumber',{
 				   id:i,
-				   params:[i],   
+				   params:[i,true],   
 				  success: function(result) {	
 					if(!result.result) return;			  
 					 $('#senttime'+result.id).html(new Date(result.result.timestamp_msg*1000).toLocaleDateString()+" "+new Date(result.result.timestamp_msg*1000).toLocaleTimeString());
@@ -193,6 +195,13 @@ edichain.client.updateSentList = function() {
 					console.log("ERROR",result);
 				  }
 				});
+}
+
+edichain.client.updateSentList = function() {
+		var html="<tr><th>Sent</th><th>Message Contract Address</th><th>To Account Address</th><th>Message Hash</th><th>Contrl/Aperak</th><th>Actions</th></tr>";
+		for(var i=edichain.client.sentcount-1;((i>=0)&&(i>edichain.client.sentcount-10));i--) {
+				html+="<tr><td id='senttime"+i+"'>loading</td><td id='sentadr"+i+"'></td><td id='sentto"+i+"'></td><td id='senthash"+i+"'></td><td id='sentctrl"+i+"'></td><td id='sentactions"+i+"'></td></tr>";				
+				edichain.client.updateSentByNum(i);
 		}				
 		$('#sentlist').html(html);
 };
@@ -210,9 +219,14 @@ $('#sendAperak').on('click',function() {
 	  }
 	});
 });
-$('#sendEdi').on('click',function()  {	
+$('#sendEdi').on('click',function()  {
+	var params = [];
+	params.push($('#txtNEDI').val());
+	if($('#recipientEDI').val().trim().length>10) {
+		params.push($('#recipientEDI').val().trim());
+	}
 	$.jsonRPC.request('sendEdi',{
-	  params:[$('#txtNEDI').val()],   
+	  params:params,   
 	  success: function(result) {
 		 		 
 	  },

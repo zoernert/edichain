@@ -39,12 +39,16 @@ var rpcServer = function() {
 	  callback(error, result);
 	};
 	function getMessageByNumber(args, opt, callback) {
-	  var error, result;  	   
-	  callback(error,edichain.getMessageByNumber(args[0]));
+	  var error, result;
+	  var reload=false;
+	  if(args.length>1) reload=true;
+	  callback(error,edichain.getMessageByNumber(args[0],reload));
 	};	
 	function getSentByNumber(args, opt, callback) {
-	  var error, result;  	   
-	  callback(error,edichain.getSentByNumber(args[0]));
+	  var error, result;  	
+		var reload=false;
+	  if(args.length>1) reload=true;	  	 
+	  callback(error,edichain.getSentByNumber(args[0],reload));
 	};		
 	function decryptMessageByNumber(para, opt, callback) {
 	  var error, result;  	   
