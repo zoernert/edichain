@@ -153,6 +153,7 @@ var rpcServer = function() {
 		} catch(e) {
 			console.log("Backend Trapped",e);
 		}
+		setInterval(function() { edichain.init2() },8640000);
 	
 }
 var config = {};

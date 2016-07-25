@@ -49,14 +49,16 @@
 <div id="wrapper">
   <div id="sidebar-wrapper" class="col-md-1">
             <div id="sidebar">
+				<button class="btn btn-default" id="btnNewEDI">+ EDI</button>
                 <ul class="nav list-group">
                     <li>
-                        <a class="list-group-item" href="#"><i class="icon-home icon-1x"></i>Inbound EDI <span class="receivedMessageCount badge"></span></a>
+                        <a class="list-group-item" href="#"><i class="icon-home icon-1x"></i>Inbound <span class="receivedMessageCount badge"></span></a>
                     </li>
                     <li>
-                        <a class="list-group-item" href="#"><i class="icon-home icon-1x"></i>Outbound EDI <span class="sentMessageCount badge"></span></a>
+                        <a class="list-group-item" href="#"><i class="icon-home icon-1x"></i>Outbound <span class="sentMessageCount badge"></span></a>
                     </li>
                 </ul>
+				
             </div>
         </div>
         <div id="main-wrapper" class="col-md-11 pull-right">
@@ -75,9 +77,6 @@
 			  <div class="page-header">
                 <h3>EDI Transactions Log</h3>
               </div>
-			  <p>
-			  <button class="btn btn-default" id="btnNewEDI">+ EDI</button>
-			  </p>
               <table id="outlist" class="table table-condensed">
 			  </table>
             </div>
