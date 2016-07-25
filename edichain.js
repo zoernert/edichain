@@ -152,7 +152,10 @@ edichain.init2 = function() {
 	var usertRegistration = function() {
 		
 		edichain.storage.writeObject({pubkey:edichain.config.pem_data},function(data) {
+				try {
 				edichain.register(data.hash);
+				} catch(e) { // Subject to fail on new - unloaded accounts 
+				}
 				edichain.config.ipnsKeyPublished=true;
 		});
 		
