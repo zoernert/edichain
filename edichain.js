@@ -599,7 +599,10 @@ edichain.getSentByNumber = function(num,force_reload) {
 		if(edichain.message_sent[msg_addr].timestamp_ack<1) {
 			force_reload=true;
 		}
-	}
+		if(edichain.message_sent[msg_addr].aperak) {
+			force_reload=false;
+		}
+	}	
 	if(msg_addr.length>3) if((!edichain.message_sent[msg_addr])||(force_reload)) {	
 				var m = new edichain.message();	
 				var msg=web3.eth.contract(edichain.config.messageAbi).at(msg_addr);		
@@ -620,6 +623,9 @@ edichain.getMessageByNumber = function(num,force_reload) {
 	if(edichain.message_cache[msg_addr]) {
 		if(edichain.message_cache[msg_addr].timestamp_ack<1) {
 			force_reload=true;
+		}
+		if(edichain.message_cache[msg_addr].content) {
+			force_reload=false;
 		}
 	}
 	if(msg_addr.length>3) if((!edichain.message_cache[msg_addr])||force_reload) {	

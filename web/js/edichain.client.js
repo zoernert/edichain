@@ -199,7 +199,7 @@ edichain.client.updateSentByNum = function (i) {
 
 edichain.client.updateSentList = function() {
 		var html="<tr><th>Sent</th><th>Message Contract Address</th><th>To Account Address</th><th>Message Hash</th><th>Contrl/Aperak</th><th>Actions</th></tr>";
-		for(var i=edichain.client.sentcount-1;((i>=0)&&(i>edichain.client.sentcount-10));i--) {
+		for(var i=edichain.client.sentcount;((i>=0)&&(i>edichain.client.sentcount-10));i--) {
 				html+="<tr><td id='senttime"+i+"'>loading</td><td id='sentadr"+i+"'></td><td id='sentto"+i+"'></td><td id='senthash"+i+"'></td><td id='sentctrl"+i+"'></td><td id='sentactions"+i+"'></td></tr>";				
 				edichain.client.updateSentByNum(i);
 		}				
