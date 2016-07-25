@@ -112,8 +112,8 @@ var rpcServer = function() {
 		})
 	};	
 	
-	while(true) {
-		try {
+	
+		
 		var server = rpc.Server.$create({
 			'websocket': true, // is true by default
 			'headers': { // allow custom headers is empty by default
@@ -136,10 +136,10 @@ var rpcServer = function() {
 			'getBalance':getBalance,
 			'getTx':getTx
 		});	
+		server.listen(8000, '0.0.0.0');
 		
-		
-		server.listen(8000, 'localhost');
-		
+		try {
+				
 		var c = edichain.getReceivedMessageCount();
 		/*
 		console.log("Preload some cache data..");	
@@ -153,7 +153,7 @@ var rpcServer = function() {
 		} catch(e) {
 			console.log("Backend Trapped",e);
 		}
-	}
+	
 }
 var config = {};
 
