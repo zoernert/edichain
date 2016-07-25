@@ -144,8 +144,8 @@ edichain.txlog.stream({ start: -1 }).on('log', function(log) {
 Internally this script is using winston as logger and creates a tx.log file containing all transactions for auditing.
 
 ## Contributing
-https://gitter.im/zoernert/edichain
-https://blog.stromhaltig.de/ 
+- https://gitter.im/zoernert/edichain
+- https://blog.stromhaltig.de/ 
 
 ## Release History
 * 0.0.21 Added Transaction View
