@@ -1,8 +1,6 @@
 EDIchain
 =========
 
-[![Join the chat at https://gitter.im/zoernert/edichain](https://badges.gitter.im/zoernert/edichain.svg)](https://gitter.im/zoernert/edichain?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
 Provides a basic integration for ipfs (storage/distribution) and ethereum blockchain (validation/authorization) based EDI message exchange. All messages are transactions represented within the blockchain. Message data is always encrypted an is not part of the blockchain transaction. Instead a hash of the encrypted content is published into the blockchain. Message data/content is distributed via ipfs. 
 
 - Encrypted P2P Data exchange that require transaction proof (consens of transactions)
