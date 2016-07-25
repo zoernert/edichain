@@ -9,12 +9,7 @@ var forge = require('node-forge');
 var rpc = require('json-rpc2');
 var fs = require('fs');
 
-var server = rpc.Server.$create({
-    'websocket': true, // is true by default
-    'headers': { // allow custom headers is empty by default
-        'Access-Control-Allow-Origin': '*'
-    }
-});
+
 
 
 var rpcServer = function() {
@@ -116,35 +111,49 @@ var rpcServer = function() {
 					callback(error,result);  			
 		})
 	};	
-	server.expose('edichain',{
-		'sendEdi':sendEdi,
-		'receivedMessageCount':receivedMessageCount,		
-		'sentMessageCount':sentMessageCount,
-		'decryptMessageByNumber':decryptMessageByNumber,
-		'decryptSentByNumber':decryptSentByNumber,
-		'getMessageByNumber':getMessageByNumber,
-		'getSentByNumber':getSentByNumber,
-		'chainAccount':chainAccount,
-		'ackMessageByAddr':ackMessageByAddr,
-		'getTxLog':getTxLog,
-		'getAck':getAck,
-		'getBalance':getBalance,
-		'getTx':getTx
-	});	
 	
-	
-	server.listen(8000, 'localhost');
-	
-	var c = edichain.getReceivedMessageCount();
-	/*
-	console.log("Preload some cache data..");	
-	for(var i=c-1;((i>=0)&&(i>c-3));i--) {
-		edichain.getMessageByNumber(i);
+	while(true) {
+		try {
+		var server = rpc.Server.$create({
+			'websocket': true, // is true by default
+			'headers': { // allow custom headers is empty by default
+				'Access-Control-Allow-Origin': '*'
+			}
+		});
+
+		server.expose('edichain',{
+			'sendEdi':sendEdi,
+			'receivedMessageCount':receivedMessageCount,		
+			'sentMessageCount':sentMessageCount,
+			'decryptMessageByNumber':decryptMessageByNumber,
+			'decryptSentByNumber':decryptSentByNumber,
+			'getMessageByNumber':getMessageByNumber,
+			'getSentByNumber':getSentByNumber,
+			'chainAccount':chainAccount,
+			'ackMessageByAddr':ackMessageByAddr,
+			'getTxLog':getTxLog,
+			'getAck':getAck,
+			'getBalance':getBalance,
+			'getTx':getTx
+		});	
+		
+		
+		server.listen(8000, 'localhost');
+		
+		var c = edichain.getReceivedMessageCount();
+		/*
+		console.log("Preload some cache data..");	
+		for(var i=c-1;((i>=0)&&(i>c-3));i--) {
+			edichain.getMessageByNumber(i);
+		}
+		*/
+		console.log("RPC Server started on http://localhost:8000");
+		console.log("Web UI might be available on http://localhost:8080/ipns/QmSPtbb8VUVs1k5spJfDhrUc1mzdsC5FKGZpx1FSfhjmze/index.html ");	
+		//var tx=edichain.getTx("0xe41e88cc3608f6af0072291182492ea7ea8089f7");		
+		} catch(e) {
+			console.log("Backend Trapped",e);
+		}
 	}
-	*/
-	console.log("RPC Server started on http://localhost:8000");
-	console.log("Web UI might be available on http://localhost:8080/ipns/QmSPtbb8VUVs1k5spJfDhrUc1mzdsC5FKGZpx1FSfhjmze/index.html ");	
-	//var tx=edichain.getTx("0xe41e88cc3608f6af0072291182492ea7ea8089f7");		
 }
 var config = {};
 
