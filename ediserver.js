@@ -78,12 +78,26 @@ var rpcServer = function() {
 		callback(error,result);	
 	}
 	
+	function getSentAddrs(para,opt,callback) {
+		var error, result;	
+		result=edichain.getSentAddrs();		
+		callback(error,result);	
+	}
+	
+	function getMesssageAddrs(para,opt,callback) {
+		var error, result;	
+		result=edichain.getMesssageAddrs();		
+		callback(error,result);	
+	}
+	
 	function getTxLog(para,opt,callback) {
 		var error, result;
 		edichain.getTxLog(function(r) {		
 			callback(error,r);	
 		});
 	}
+	
+	
  
 	function sendEdi(para, opt, callback) {
 	  var error, result;  	   
@@ -134,7 +148,10 @@ var rpcServer = function() {
 			'getTxLog':getTxLog,
 			'getAck':getAck,
 			'getBalance':getBalance,
-			'getTx':getTx
+			'getTx':getTx,
+			'getSentAddrs':getSentAddrs,
+			'getMesssageAddrs':getMesssageAddrs
+			
 		});	
 		server.listen(8000, '0.0.0.0');
 		

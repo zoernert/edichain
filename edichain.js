@@ -259,7 +259,7 @@ edichain.getTx = function(addr) {
 		} else {		
 			tx.msg=edichain.message_cache[addr];
 		}	
-		if(tx.msg.timestamp_ack>0) {
+		if((tx.msg.timestamp_ack>0)&&(edichain.message_cache[addr].content)) {
 			tx.mutable=false;		
 		}
 	} else if(tx.msg.from==edichain.config.fromAddress) {
@@ -319,6 +319,31 @@ edichain.sendData = function(to,data,cb) {
 
 };
 
+edichain.getSentAddrs=function() {
+
+var msgs=[];
+var i=0;
+	do {
+			msg_addr = edichain.config.registrarContract.sent(edichain.config.fromAddress,i++);
+			if(msg_addr.length>3) msgs.push(msg_addr);
+	} while(msg_addr.length>3);
+
+return msgs;
+
+}
+
+edichain.getMesssageAddrs=function() {
+
+var msgs=[];
+var i=0;
+	do {
+			msg_addr = edichain.config.registrarContract.msgs(edichain.config.fromAddress,i++);
+			if(msg_addr.length>3) msgs.push(msg_addr);
+	} while(msg_addr.length>3);
+
+return msgs;
+
+}
 // Blockchain synced get Message Address by Storage Hash
 edichain.getMessageByHash = function(hash) {
 	var msg=null;

@@ -239,7 +239,8 @@ $('#sendEdi').on('click',function()  {
 $.jsonRPC.request('chainAccount',{
 	   params:[],   
 	  success: function(result) {
-		 $('#nbAcctDD').text(result.result);
+		 $('#nbAcctDD').text(result.result.substr(0,10)+"...");
+		 $('#nbAcctDD').attr('title',result.result);
 		$('#chargelink').attr("href","https://microdao.stromhaltig.de/edichain/?act="+result.result);
 	  },
 	  error: function(result) {
