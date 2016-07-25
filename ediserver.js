@@ -2,6 +2,8 @@
   EDIserver 
   Provides a JSON RPC service to interact with edichain 
 */
+Error.stackTraceLimit = Infinity;
+
 require("./edichain.js");
 var forge = require('node-forge');
 var rpc = require('json-rpc2');
