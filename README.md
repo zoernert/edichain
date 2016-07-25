@@ -8,6 +8,9 @@ Provides a basic integration for ipfs (storage/distribution) and ethereum blockc
 - Easy integration into existing backend systems (like EDIFact)
 - Try to do a kind of Plug and Play ... (Auto-Register, Auto-Config...)
 
+## Demo
+
+There is a cloud demo available at http://139.59.212.222:8088/ - However this is an unprotected environment to quickly see what this package/module is about. 
 
 ## Installation
 ```
@@ -145,6 +148,7 @@ https://gitter.im/zoernert/edichain
 https://blog.stromhaltig.de/ 
 
 ## Release History
+* 0.0.21 Added Transaction View
 * 0.0.11 Added JSON-RPC2 Interface as sample implementation
 * 0.0.10  Maintainance Release (Fix Issue #2)
 * 0.0.9 Encapsulated IPFS cloud WORM in order to allow providers as alternative
