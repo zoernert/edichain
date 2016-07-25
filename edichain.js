@@ -157,8 +157,7 @@ edichain.init2 = function() {
 		});
 		
 	}
-	edichain.config.registrarContract=web3.eth.contract(edichain.config.registrarAbi).at(edichain.config.pubRegistrarAddress);	
-	console.log(edichain.config.registrarContract.regadr(edichain.config.fromAddress));
+	edichain.config.registrarContract=web3.eth.contract(edichain.config.registrarAbi).at(edichain.config.pubRegistrarAddress);		
 	var pem_hash = edichain.config.registrarContract.regadr(edichain.config.fromAddress)[1];	
 	if(pem_hash.length>4) {
 		edichain.storage.readObject(pem_hash,function(data) {				
@@ -202,7 +201,7 @@ edichain.bootstrap.prototype.createNewKeypair=function() {
 		edichain.config.pom=keypair.privateKey;
 		edichain.config.pem_data = forge.pki.publicKeyToPem(keypair.publicKey);
 		edichain.config.pom_data = forge.pki.privateKeyToPem(keypair.privateKey);
-		console.log(edichain.config.pem_data);
+		//console.log(edichain.config.pem_data);
 		
 		fs.writeFile(edichain.config.path+"pub.pem", forge.pki.publicKeyToPem(keypair.publicKey), function(err) {    
 			console.log("Public Key saved (filesystem)");
@@ -216,7 +215,67 @@ edichain.bootstrap.prototype.createNewKeypair=function() {
 edichain.getBalance = function() {
 		return web3.eth.getBalance(edichain.config.fromAddress);
 }
+edichain.txs = [];
+
+edichain.tx = function() {};
+
+edichain.getTx = function(addr) {
+	var tx=null;
+	if(edichain.txs[addr]) {
+		tx=edichain.txs[addr];
+	} else {
+		var tx = new edichain.tx();
+		tx.mutable=true;
+	}	
+	if(!tx.mutable) return tx;
+	var msg=web3.eth.contract(edichain.config.messageAbi).at(addr);	
+	if(!tx.msg) {
+		tx.msg={};
+		tx.msg.addr=addr;
+		tx.msg.from=msg.from();
+		tx.msg.to=msg.to();
+		tx.msg.hash_msg=msg.hash_msg();
+		tx.msg.timestamp_msg=msg.timestamp_msg();
+		tx.msg.hash_ack=msg.hash_ack();				
+		tx.msg.timestamp_ack=msg.timestamp_ack();		
+	} else {
+		if(tx.msg.timestamp_ack!=msg.timestamp_ack()) {
+			tx.msg.timestamp_ack=msg.timestamp_ack();
+			tx.msg.hash_ack=msg.hash_ack();
+		}
+	}	
+	tx.addr = addr;
+	if(tx.msg.to==edichain.config.fromAddress) {		
+		if(!edichain.message_cache[addr]) {
+			edichain.storeMessage(tx.msg);		
+		}
+		if(!edichain.message_cache[addr].content) {
+			edichain.message_cache[addr]=tx.msg;			
+			edichain.decryptMessage(tx.msg);
+		} else {		
+			tx.msg=edichain.message_cache[addr];
+		}	
+		if(tx.msg.timestamp_ack>0) {
+			tx.mutable=false;		
+		}
+	} else if(tx.msg.from==edichain.config.fromAddress) {
+			if(tx.msg.timestamp_ack>0) {			
+				if(!edichain.message_sent[addr]) {
+						edichain.storeSent(tx.msg);						
+				}
+				if(!edichain.message_sent[addr].aperak) {
+					edichain.message_sent[addr]=tx.msg;								
+					edichain.decryptAck(tx.msg);
+				} else {		
+					tx.msg.aperak=edichain.message_sent[addr].aperak;
+					tx.mutable=false;
+				}				
+			}
+	}	
 	
+	edichain.txs[addr]=tx;
+	return tx;
+}	
 edichain.sendData = function(to,data,cb) {
  
 	var sendDataWithPubKey=function(to_key) {
@@ -256,12 +315,34 @@ edichain.sendData = function(to,data,cb) {
 
 };
 
+// Blockchain synced get Message Address by Storage Hash
+edichain.getMessageByHash = function(hash) {
+	var msg=null;
+	i=0;
+	do {
+		msg_addr = edichain.config.registrarContract.sent(edichain.config.fromAddress,i++);
+		var msg = web3.eth.contract(edichain.config.messageAbi).at(msg_addr);
+		if((msg.hash_msg()==hash)||(msg.hash_ack()==hash)) {			
+			return msg_addr;
+		}		
+	} while(msg_addr.length>3);
+	do {
+		msg_addr = edichain.config.registrarContract.msgs(edichain.config.fromAddress,i++);
+		var msg = web3.eth.contract(edichain.config.messageAbi).at(msg_addr);
+		if((msg.hash_msg()==hash)||(msg.hash_ack()==hash)) {			
+			return msg_addr;
+		}
+	} while(msg_addr.length>3);
+	
+	return null;
+}
+
 edichain.sendMsg = function(to,hash,cb) {
 		edichain.config.registrarContract.sendMsg(to,hash,{from:edichain.config.fromAddress,gas: 1000000,value:edichain.config.registrarContract.fee_msg()},function(error, result){
-			if(!error) {
-				console.log("TX Hash sendMsg:"+result)
+			if(!error) {				
 				edichain.txlog.info('sendMsg',{'result':result,'to':to,'hash':hash});
 				if(cb) {
+					//console.log("TX Msg contract:",edichain.getMessageByHash(hash));
 					cb(result,hash);
 				}
 				}

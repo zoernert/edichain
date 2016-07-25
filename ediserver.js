@@ -66,14 +66,18 @@ var rpcServer = function() {
 			edichain.ackMessageByAddr(para[0],para[1],function() {
 				callback(error,result);			
 			});
-		} catch(e) {error=e;callback(error,result);}
-	
-	}
+		} catch(e) {error=e;callback(error,result);}	
+	};
 	
 	function getAck(para,opt,callback) {
 		var error, result;	
-		result=edichain.getAck(para[0],para[1]);
-		console.log(result);
+		result=edichain.getAck(para[0],para[1]);		
+		callback(error,result);	
+	}
+	
+	function getTx(para,opt,callback) {
+		var error, result;	
+		result=edichain.getTx(para[0]);		
 		callback(error,result);	
 	}
 	
@@ -105,7 +109,8 @@ var rpcServer = function() {
 			filename:'adhoc',
 			data:forge.util.encode64(data)		
 		}
-		edichain.sendData(recipient,JSON.stringify(msg),function(tx,hash) {				
+		edichain.sendData(recipient,JSON.stringify(msg),function(tx,hash) {		
+					result=hash;
 					callback(error,result);  			
 		})
 	};	
@@ -121,17 +126,23 @@ var rpcServer = function() {
 		'ackMessageByAddr':ackMessageByAddr,
 		'getTxLog':getTxLog,
 		'getAck':getAck,
-		'getBalance':getBalance
+		'getBalance':getBalance,
+		'getTx':getTx
 	});	
-		
+	
+	
 	server.listen(8000, 'localhost');
+	
 	var c = edichain.getReceivedMessageCount();
-	console.log("Preload some cache data..");
+	/*
+	console.log("Preload some cache data..");	
 	for(var i=c-1;((i>=0)&&(i>c-3));i--) {
 		edichain.getMessageByNumber(i);
 	}
+	*/
 	console.log("RPC Server started on http://localhost:8000");
 	console.log("Web UI might be available on http://localhost:8080/ipns/QmSPtbb8VUVs1k5spJfDhrUc1mzdsC5FKGZpx1FSfhjmze/index.html ");	
+	//var tx=edichain.getTx("0xe41e88cc3608f6af0072291182492ea7ea8089f7");		
 }
 var config = {};
 
