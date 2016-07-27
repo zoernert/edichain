@@ -114,6 +114,8 @@ var viewTx = function(tx) {
 						if(result.result.addr) $('#txid').html(result.result.addr);
 						if(result.result.msg.from) $('#txfrom').html(result.result.msg.from);
 						if(result.result.msg.to) $('#txto').html(result.result.msg.to);
+						if(result.result.msg.hash_msg) $('#txhashedi').html(result.result.msg.hash_msg);
+						if(result.result.msg.hash_ack) $('#txhashaperak').html(result.result.msg.hash_ack);
 						if(result.result.msg.timestamp_msg) $('#txtimemsg').html(new Date(result.result.msg.timestamp_msg*1000).toLocaleString());
 						if(result.result.msg.timestamp_ack>0) $('#txtimeack').html(new Date(result.result.msg.timestamp_ack*1000).toLocaleString());
 						if(result.result.mutable) $('#txmute').html("<span style='color:red'>true</span>"); else $('#txmute').html("false");
