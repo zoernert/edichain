@@ -126,7 +126,12 @@ var rpcServer = function() {
 		})
 	};	
 	
-	
+		if(server) {
+			try {server.close();
+			} catch(e) {
+						
+			}		
+		}
 		
 		var server = rpc.Server.$create({
 			'websocket': true, // is true by default
@@ -153,6 +158,7 @@ var rpcServer = function() {
 			'getMesssageAddrs':getMesssageAddrs
 			
 		});	
+		
 		server.listen(8000, '0.0.0.0');
 		
 		try {
