@@ -158,9 +158,11 @@ var rpcServer = function() {
 			'getMesssageAddrs':getMesssageAddrs
 			
 		});	
-		
+		try {
 		server.listen(8000, '0.0.0.0');
-		
+		} catch(e)  {
+			console.log(e);
+		}
 		try {
 				
 		var c = edichain.getReceivedMessageCount();
